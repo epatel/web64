@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web64 IDE User Manual</title>
+<style>
+:root { color-scheme: light; --ink:#171815; --muted:#56594f; --line:#d9d2c3; --paper:#fbfaf5; --panel:#f0eadc; --accent:#2d4f45; --code:#10110f; }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--paper); color:var(--ink); font-family: "Segoe UI", Arial, sans-serif; line-height:1.55; font-size:15px; }
+main { max-width: 980px; margin: 0 auto; padding: 48px 36px 72px; }
+h1, h2, h3, h4 { line-height:1.2; color:#10110f; page-break-after: avoid; }
+h1 { font-size: 38px; border-bottom: 4px solid var(--accent); padding-bottom: 16px; margin: 0 0 22px; }
+h2 { font-size: 25px; border-top: 1px solid var(--line); padding-top: 22px; margin-top: 34px; }
+h3 { font-size: 18px; margin-top: 26px; }
+p, li { max-width: 88ch; }
+a { color: #214f85; }
+code { font-family: Consolas, "Liberation Mono", monospace; background: #ece5d6; padding: 1px 4px; border-radius: 3px; }
+pre { background: var(--code); color: #f0eadc; padding: 14px 16px; overflow-x: auto; border-radius: 6px; page-break-inside: avoid; }
+pre code { background: transparent; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 24px; page-break-inside: avoid; }
+th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--panel); }
+@media print { body { background:#fff; font-size: 11.5pt; } main { max-width:none; padding: 0; } h1 { font-size: 28pt; } h2 { font-size: 18pt; break-after: avoid; } h3 { font-size: 14pt; break-after: avoid; } pre, table { break-inside: avoid; } a { color: inherit; text-decoration: none; } }
+</style>
+</head>
+<body>
+<main>
+<h1 id="web64-ide-user-manual">Web64 IDE User Manual</h1>
+<p>Version: 2026-06-30 Copyright (c) 2026 Mika Jussila, Siteledger Solutions Oy</p>
+<h2 id="contents">Contents</h2>
+<ol>
+<li><a href="#what-web64-ide-is">What Web64 IDE is</a></li>
+<li><a href="#web64-principles">Web64 principles</a></li>
+<li><a href="#the-ide-workspace">The IDE workspace</a></li>
+<li><a href="#projects-and-persistence">Projects and persistence</a></li>
+<li><a href="#the-virtual-filesystem">The virtual filesystem</a></li>
+<li><a href="#source-editing-and-compilation">Source editing and compilation</a></li>
+<li><a href="#assembler-reference">Assembler reference</a></li>
+<li><a href="#includes-imports-symbol-files-and-binary-data">Includes, imports, symbol files, and binary data</a></li>
+<li><a href="#macros">Macros</a></li>
+<li><a href="#building-loading-and-running-programs">Building, loading, and running programs</a></li>
+<li><a href="#the-embedded-web64-runtime">The embedded Web64 runtime</a></li>
+<li><a href="#debugger">Debugger</a></li>
+<li><a href="#live-patching">Live patching</a></li>
+<li><a href="#character-editor">Character editor</a></li>
+<li><a href="#sprite-editor">Sprite editor</a></li>
+<li><a href="#generated-include-files">Generated include files</a></li>
+<li><a href="#snapshots-and-state">Snapshots and state</a></li>
+<li><a href="#keyboard-joystick-and-gamepad-input">Keyboard, joystick, and gamepad input</a></li>
+<li><a href="#recommended-workflows">Recommended workflows</a></li>
+<li><a href="#troubleshooting">Troubleshooting</a></li>
+<li><a href="#reference-tables">Reference tables</a></li>
+</ol>
+<h2 id="what-web64-ide-is">What Web64 IDE is</h2>
+<p>Web64 IDE is a browser-native Commodore 64 development environment built around the Web64 VICE port. It combines a compact assembly editor, a virtual project filesystem, a 6502 assembler, browser-local graphics asset editors, an embedded C64 runtime, live patching, and debugging tools into one web application.</p>
+<p>The IDE is designed for short feedback loops. You can edit assembly source, create or modify character sets and sprite banks, build a PRG, load it into the embedded emulator, and run it without leaving the browser. When live patching is enabled, many code and asset changes can be written into the running emulator memory so the effect can be inspected without restarting the entire program.</p>
+<p>Web64 IDE is separate from the root Web64 emulator page. The root emulator is intentionally lightweight and focused on running existing C64 media. The IDE is a development surface with editors, project state, diagnostics, and debug metadata. The IDE can use the same browser runtime, but the IDE should not be treated as part of the core emulator UI.</p>
+<h2 id="web64-principles">Web64 principles</h2>
+<p>Web64 IDE follows a few practical principles:</p>
+<ul>
+<li>Browser first: The IDE runs in the browser. It does not require Electron, Tauri, a native daemon, or direct host filesystem access.</li>
+<li>Local by default: Project files, graphics assets, source text, and generated PRG data live in browser memory until the user explicitly saves or downloads them.</li>
+<li>Virtual filesystem as source of truth: Imported files are represented inside the Web64 project tree. Assembly code should refer to project paths, not machine-specific host paths.</li>
+<li>Reproducible projects: A <code>.web64proj</code> file should contain the source, virtual files, binary assets, symbols/includes, and IDE emulator settings needed to reopen the work later.</li>
+<li>Emulator separation: The root Web64 emulator stays focused on running programs and media. IDE-only features belong under <code>/ide</code>.</li>
+<li>VICE compatibility where it matters: Runtime behavior comes from the VICE C64 core. The IDE adds browser-local tooling around that core.</li>
+<li>Fast edit-run loop: The main workflow is change source or assets, compile, load, start, inspect, and repeat.</li>
+<li>Asset-aware assembly: Character and sprite assets are ordinary virtual binary files. They are included with <code>.import binary</code> or <code>.incbin</code>, and optional generated include files expose useful labels.</li>
+<li>No hidden host paths: A project should not depend on <code>C:\...</code>, <code>/home/...</code>, or any local source tree outside the browser project.</li>
+<li>Graceful degradation: Where a browser feature is unavailable, Web64 IDE should fall back to download-based saving or show diagnostics instead of losing project data.</li>
+</ul>
+<h2 id="the-ide-workspace">The IDE workspace</h2>
+<p>The IDE is organized into a compact multi-pane layout:</p>
+<ul>
+<li>Top toolbar: Project and build actions such as open project, save project, load source, save source, save PRG, load PRG, and start PRG.</li>
+<li>Left project sidebar: Project source, origin/start controls, entry point selection, and project-level controls.</li>
+<li>File tree: Virtual project files used by <code>.include</code>, <code>.import</code>, and <code>.incbin</code>.</li>
+<li>Center workbench: Tabbed IDE views. The current first-class tabs are Code, Debugger, Char Editor, and Sprite Editor.</li>
+<li>Embedded emulator panel: The Web64 runtime surface used to load and run the assembled PRG.</li>
+<li>Inspector sidebar: Compiler diagnostics, line map, byte output, targets, trace highlights, and breakpoint toggles.</li>
+</ul>
+<p>The Code tab is split between the editor and the embedded emulator. The split and sidebars are resizable. Sidebars can be collapsed to preserve workspace area.</p>
+<p>The tab line is intentionally compact. The current tab groups are:</p>
+<ul>
+<li>Workspace: Code and Debugger.</li>
+<li>Assets: Char Editor and Sprite Editor.</li>
+</ul>
+<p>Future editor types such as a monitor view, sprite animation timeline, memory viewer, music tooling, or character map tooling can be added as new tab types without changing the project model.</p>
+<h2 id="projects-and-persistence">Projects and persistence</h2>
+<p>Web64 IDE projects are saved as <code>.web64proj</code> files. A project file is JSON with enough information to recreate the browser-local project state.</p>
+<p>A project stores:</p>
+<ul>
+<li>Main source text.</li>
+<li>Source file name.</li>
+<li>Assembly origin.</li>
+<li>Selected entry label.</li>
+<li>Virtual project files.</li>
+<li>Binary assets, stored as base64.</li>
+<li>Generated include files.</li>
+<li>Graphics asset metadata such as mode, dimensions, color slots, include paths, and counts.</li>
+<li>IDE emulator settings such as display scale, audio, SID quality, scanlines, drive 9, gamepad, joystick port, warp, and live patch setting.</li>
+</ul>
+<p>The project file does not store:</p>
+<ul>
+<li>Native host filesystem handles as required state.</li>
+<li>Browser runtime memory.</li>
+<li>Unsaved emulator snapshot state, unless exported separately as a <code>.vsf</code>.</li>
+<li>External source tree paths outside the virtual project.</li>
+</ul>
+<h3 id="opening-a-project">Opening a project</h3>
+<p>Use the project open button in the top toolbar. If the browser supports the File System Access API, Web64 IDE can open a file handle directly. Otherwise, use the standard file input fallback.</p>
+<p>Opening a project replaces the current source, virtual file tree, selected entry label, and persisted emulator settings. Current runtime state is cleared from the IDE model.</p>
+<h3 id="saving-a-project">Saving a project</h3>
+<p>Use the project save button. Web64 IDE writes a <code>.web64proj</code> file through the browser file picker when available. If direct file saving is unavailable, it downloads the project file.</p>
+<p>Before saving, the IDE flushes pending character and sprite draft edits into the virtual filesystem. This is important: the saved project should contain the current bytes visible in the asset editors, not stale bytes from a previous commit.</p>
+<h3 id="saving-source-and-prg-files">Saving source and PRG files</h3>
+<p>The source save action saves only the currently edited source text. The PRG save action compiles the current source and virtual files, then saves the generated PRG bytes.</p>
+<p>Use project save when you want to preserve the entire IDE state. Use source save or PRG save when you only want a single artifact.</p>
+<h2 id="the-virtual-filesystem">The virtual filesystem</h2>
+<p>The virtual filesystem is the core of Web64 IDE project structure. It is a browser-local tree of files that the assembler can resolve by project path.</p>
+<p>Virtual files can be:</p>
+<ul>
+<li>Source files such as <code>.asm</code>, <code>.s</code>, <code>.inc</code>, <code>.txt</code>, <code>.mac</code>, <code>.sym</code>, <code>.def</code>, <code>.cfg</code>, or <code>.map</code>.</li>
+<li>Binary files such as <code>.bin</code>, <code>.raw</code>, <code>.dat</code>, <code>.sid</code>, <code>.prg</code>, <code>.seq</code>, <code>.scr</code>, <code>.koa</code>, and other data files.</li>
+<li>Character set assets such as <code>.chr</code> or <code>.ch8</code>.</li>
+<li>Sprite bank assets such as <code>.spr</code>.</li>
+<li>Generated include files such as <code>assets/chars/logo.inc</code> or <code>assets/sprites/player.inc</code>.</li>
+</ul>
+<p>Paths use forward slashes. For example:</p>
+<pre><code class="language-asm">assets/chars/title.chr
+assets/sprites/player.spr
+includes/common.asm
+symbols/kernal.sym</code></pre>
+<p>The virtual path is the path used by <code>.include</code>, <code>.import</code>, and <code>.incbin</code>. It is not required to match an absolute host filesystem location.</p>
+<h3 id="adding-files">Adding files</h3>
+<p>The Files panel has actions for:</p>
+<ul>
+<li>New: Create a virtual file in the project tree.</li>
+<li>Add files: Import one or more browser-selected files into the virtual tree.</li>
+<li>Add folder: Import a browser-selected folder tree when the browser supports directory selection.</li>
+<li>Remove: Remove the selected virtual file.</li>
+<li>Clear: Remove all virtual import files.</li>
+</ul>
+<p>When you add <code>.chr</code> or <code>.spr</code> files, Web64 IDE converts them into editable graphics assets and creates generated include records for them. Text-like files become source records. Other files become binary records.</p>
+<h3 id="creating-virtual-files">Creating virtual files</h3>
+<p>Use New in the file tree. The extension determines the initial type:</p>
+<ul>
+<li><code>.chr</code> or <code>.ch8</code>: Creates a character set asset.</li>
+<li><code>.spr</code>: Creates a sprite bank asset.</li>
+<li><code>.sym</code>: Creates a symbols/source file.</li>
+<li>Text-like extension: Creates an editable source file.</li>
+<li>Other extension: Creates an empty binary record.</li>
+</ul>
+<h3 id="path-resolution">Path resolution</h3>
+<p>When resolving an import path, Web64 IDE tries practical project-local candidates:</p>
+<ul>
+<li>The path relative to the current source file.</li>
+<li>The direct normalized path.</li>
+<li>The same path without leading parent segments.</li>
+<li>A matching suffix in the virtual tree.</li>
+<li>A matching base name when unambiguous.</li>
+</ul>
+<p>If a file cannot be found, the compiler reports an import diagnostic. If the same base name is ambiguous, use a more specific virtual path.</p>
+<h3 id="why-a-virtual-filesystem-is-needed">Why a virtual filesystem is needed</h3>
+<p>Browsers cannot freely read arbitrary host paths. A line such as this should not depend on a real host file outside the project:</p>
+<pre><code class="language-asm">.include &quot;C:/Users/Somebody/project/includes/defs.asm&quot;</code></pre>
+<p>Instead, add the file into the virtual tree and refer to it by project path:</p>
+<pre><code class="language-asm">.include &quot;includes/defs.asm&quot;</code></pre>
+<p>This keeps <code>.web64proj</code> portable and makes the project usable on another machine.</p>
+<h2 id="source-editing-and-compilation">Source editing and compilation</h2>
+<p>The Code tab contains the main source editor. The editor has a syntax-highlighted background layer and a browser text area input layer. Pasted blocks update the editor immediately, while background compilation is debounced so a large paste is treated as one completed edit.</p>
+<p>The compiler output updates the Inspector:</p>
+<ul>
+<li>Diagnostics: Errors and warnings with source line navigation when available.</li>
+<li>Line map: Source line, start address, emitted bytes, targets, branch offsets, and breakpoint toggles.</li>
+<li>Symbol count and output byte count in summary buttons.</li>
+</ul>
+<p>Compilation is browser-local. No native assembler is started. The current compile result is used for diagnostics, line map, entry label selection, and debugging metadata.</p>
+<h3 id="origin">Origin</h3>
+<p>The project origin determines the default load address if the source does not set one explicitly. The default project source begins at <code>$c000</code>.</p>
+<p>You can also set an origin in assembly:</p>
+<pre><code class="language-asm">* = $c000</code></pre>
+<p>or:</p>
+<pre><code class="language-asm">.org $c000</code></pre>
+<h3 id="entry-point">Entry point</h3>
+<p>The IDE looks for likely entry labels such as:</p>
+<pre><code class="language-asm">start
+entry
+_start
+main
+mainloop
+init</code></pre>
+<p>You can also select an entry label manually. The Start PRG action sends a BASIC <code>SYS</code> command to the embedded emulator using the selected start address.</p>
+<h2 id="assembler-reference">Assembler reference</h2>
+<p>Web64 IDE includes a browser-local 6502 assembler aimed at practical C64 development.</p>
+<h3 id="labels">Labels</h3>
+<p>Labels use a colon:</p>
+<pre><code class="language-asm">start:
+    lda #$00
+    sta $d020
+    rts</code></pre>
+<p>Symbols can also be assigned:</p>
+<pre><code class="language-asm">BORDER_COLOR = $d020
+SCREEN_RAM = $0400</code></pre>
+<p><code>.equ</code>, <code>!equ</code>, and <code>equ</code> style definitions are also accepted:</p>
+<pre><code class="language-asm">RASTER .equ $d012</code></pre>
+<h3 id="numbers">Numbers</h3>
+<p>Supported number forms include:</p>
+<pre><code class="language-asm">$c000       ; hexadecimal
+0xc000     ; hexadecimal
+49152      ; decimal
+%10101010  ; binary
+'A'        ; one-character literal</code></pre>
+<p>Expressions support common arithmetic and bitwise operations:</p>
+<pre><code class="language-asm">&lt;label      ; low byte
+&gt;label      ; high byte
+value + 1
+table + index * 2
+(screen + 40),y</code></pre>
+<h3 id="directives">Directives</h3>
+<p>Common data directives:</p>
+<pre><code class="language-asm">.byte $01, $02, $03
+!byte $04
+byte 5
+db 6
+
+.word start, $c000
+!word $d020
+word $0400
+dw $0801
+
+.text &quot;HELLO&quot;
+!text &quot;WORLD&quot;
+.ascii &quot;C64&quot;
+
+.fill 40, $20</code></pre>
+<p>Origin directives:</p>
+<pre><code class="language-asm">* = $c000
+.org $c000
+!org $c000
+org $c000</code></pre>
+<h3 id="instructions">Instructions</h3>
+<p>The assembler supports the official 6502 instruction set and a broad set of undocumented opcodes used in C64 coding. It resolves zero-page and absolute modes based on expression values when possible.</p>
+<p>Branch instructions are emitted with signed relative offsets. The line map shows the target address and relative byte value, which is useful when debugging loops and branch range errors.</p>
+<p>Example:</p>
+<pre><code class="language-asm">wait:
+    lda $d012
+    cmp #$30
+    bne wait</code></pre>
+<p>If a branch target is outside the valid range of -128 to +127 bytes, the compiler reports a branch-out-of-range diagnostic.</p>
+<h2 id="includes-imports-symbol-files-and-binary-data">Includes, imports, symbol files, and binary data</h2>
+<p>Web64 IDE supports source inclusion, symbol import, and binary inclusion through the virtual filesystem.</p>
+<h3 id="source-include">Source include</h3>
+<p>Use <code>.include</code> for source or symbol files:</p>
+<pre><code class="language-asm">.include &quot;includes/common.asm&quot;
+.include &quot;assets/sprites/player.inc&quot;
+#include &quot;includes/constants.inc&quot;</code></pre>
+<p>Accepted forms:</p>
+<pre><code class="language-asm">.include &quot;path&quot;
+!include &quot;path&quot;
+include &quot;path&quot;
+#include &quot;path&quot;</code></pre>
+<h3 id="source-import">Source import</h3>
+<p>Use <code>.import source</code> when you want to be explicit:</p>
+<pre><code class="language-asm">.import source &quot;Main-CommonDefines.asm&quot;
+.import source &quot;Main-CommonMacros.asm&quot;</code></pre>
+<p>Accepted source import keywords include:</p>
+<pre><code class="language-asm">.import source &quot;path&quot;
+.import asm &quot;path&quot;
+.import include &quot;path&quot;</code></pre>
+<h3 id="symbol-import">Symbol import</h3>
+<p>Symbol files are text files that expose addresses or constants. <code>.sym</code> files are treated as symbol files automatically.</p>
+<pre><code class="language-asm">.import symbols &quot;build/main.sym&quot;
+.import source &quot;../../Out/6502/Main/Main-BaseCode.sym&quot;
+.include &quot;assets/chars/logo.inc&quot;</code></pre>
+<p>Symbol line formats supported include common assignment and listing styles such as:</p>
+<pre><code class="language-asm">label = $c000
+label equ $c000
+$c000 label
+label $c000</code></pre>
+<p>Generated include files from graphics assets use simple assignments so they can be consumed by the assembler.</p>
+<h3 id="binary-import">Binary import</h3>
+<p>Use <code>.import binary</code> to insert a binary file at the current assembly address and bind a label to the start:</p>
+<pre><code class="language-asm">* = $3000
+.import binary player_sprites, &quot;assets/sprites/player.spr&quot;</code></pre>
+<p>The label becomes a symbol:</p>
+<pre><code class="language-asm">lda #&lt;player_sprites
+ldx #&gt;player_sprites</code></pre>
+<h3 id="incbin">Incbin</h3>
+<p><code>.incbin</code> inserts raw bytes from a virtual binary file.</p>
+<pre><code class="language-asm">.incbin &quot;assets/chars/logo.chr&quot;</code></pre>
+<p>You can also provide a symbol before the path:</p>
+<pre><code class="language-asm">.incbin logo_chars &quot;assets/chars/logo.chr&quot;
+.incbin player_sprites, &quot;assets/sprites/player.spr&quot;</code></pre>
+<p>Accepted binary directive families include:</p>
+<pre><code class="language-asm">.incbin
+!incbin
+incbin
+.bin
+!bin
+bin
+.binary
+!binary
+binary
+.import binary
+.import bin</code></pre>
+<h3 id="binary-assets-under-a-symbol">Binary assets under a symbol</h3>
+<p>The recommended pattern for graphics, music, maps, and lookup tables is:</p>
+<pre><code class="language-asm">* = $3000
+.import binary player_sprites, &quot;assets/sprites/player.spr&quot;
+.include &quot;assets/sprites/player.inc&quot;
+
+* = $3800
+.import binary logo_chars, &quot;assets/chars/logo.chr&quot;
+.include &quot;assets/chars/logo.inc&quot;</code></pre>
+<p>This gives you both the binary data and labels for sizes, counts, frame offsets, character indices, and editor color references.</p>
+<h2 id="macros">Macros</h2>
+<p>The assembler supports simple source macros.</p>
+<h3 id="defining-a-macro">Defining a macro</h3>
+<pre><code class="language-asm">.macro set_border color
+    lda #\color
+    sta $d020
+.endmacro</code></pre>
+<p>Accepted delimiters:</p>
+<pre><code class="language-asm">.macro / .endmacro
+!macro / !endmacro
+macro / endmacro
+macro / endm</code></pre>
+<h3 id="invoking-a-macro">Invoking a macro</h3>
+<pre><code class="language-asm">set_border $06</code></pre>
+<p>For multiple parameters, separate arguments with commas:</p>
+<pre><code class="language-asm">.macro poke address, value
+    lda #\value
+    sta \address
+.endmacro
+
+poke $d020, $02</code></pre>
+<h3 id="parameter-substitution">Parameter substitution</h3>
+<p>Macro parameters can be referenced in several forms:</p>
+<pre><code class="language-asm">\name
+{name}
+name</code></pre>
+<p>The backslash form is the clearest and is recommended because it avoids accidental replacement of normal identifiers.</p>
+<h3 id="local-labels-in-macros">Local labels in macros</h3>
+<p>Use <code>%%name</code> for macro-local labels. During expansion, each macro invocation receives a unique prefix.</p>
+<pre><code class="language-asm">.macro wait_raster line
+%%loop:
+    lda $d012
+    cmp #\line
+    bne %%loop
+.endmacro</code></pre>
+<h3 id="macro-limits">Macro limits</h3>
+<p>Macro expansion is limited to prevent runaway recursion. If expansion exceeds the supported depth, the compiler reports a macro-recursion diagnostic.</p>
+<h2 id="building-loading-and-running-programs">Building, loading, and running programs</h2>
+<p>The main PRG actions are:</p>
+<ul>
+<li>Save PRG: Compile and save/download the generated PRG.</li>
+<li>Load PRG: Compile and write the PRG into emulator memory.</li>
+<li>Start PRG: Compile if needed, load if needed, and start the selected entry point with <code>SYS</code>.</li>
+</ul>
+<p>The current program is loaded directly into C64 memory through the runtime memory bridge when available. This is faster than simulating disk loading and keeps the IDE workflow close to assemble-and-run.</p>
+<h3 id="load-prg">Load PRG</h3>
+<p>Load PRG writes the compiled bytes into C64 memory at the compile result load address. It does not automatically start the program.</p>
+<p>Use Load PRG when you want to inspect memory, set breakpoints, or manually start the program later.</p>
+<h3 id="start-prg">Start PRG</h3>
+<p>Start PRG ensures the compiled program is loaded, then sends:</p>
+<pre><code class="language-basic">SYS &lt;entry-address&gt;</code></pre>
+<p>to the emulator. The command is sent as text input to BASIC, so the runtime must be ready to receive keyboard/paste input.</p>
+<p>If source, graphics assets, or project files have changed since the last load, Start PRG reloads the current program first.</p>
+<h3 id="stop-pause-reset">Stop, Pause, Reset</h3>
+<p>The runtime controls include:</p>
+<ul>
+<li>Start: Load and start the current PRG, or restart from the selected entry.</li>
+<li>Pause: Pause the emulator and update debugger state.</li>
+<li>Stop: Stop program activity and pause/reset runtime state as implemented by the runtime bridge.</li>
+<li>Reset: Power reset the C64 runtime.</li>
+<li>Warp: Enable or disable VICE warp mode.</li>
+</ul>
+<h2 id="the-embedded-web64-runtime">The embedded Web64 runtime</h2>
+<p>The embedded runtime is the Web64 VICE-based C64 instance used by the IDE. It is shown inside the Code tab so you can edit source and inspect the running program in the same workspace.</p>
+<p>The emulator panel should remain the visual focus of the runtime area. Options are grouped in collapsible sections:</p>
+<ul>
+<li>Runtime: Start, pause, stop, reset, warp, and live patch.</li>
+<li>Display: 1x, 2x, Fit, scanlines, fullscreen.</li>
+<li>Audio: Audio enable, mute, SID quality, volume.</li>
+<li>Input: Gamepad enable, joystick port, swap ports.</li>
+<li>Storage: Quick save, quick load, snapshot import/export.</li>
+<li>Advanced: Drive 9, runtime state, live patch state, load/start addresses, direct PRG memory load.</li>
+</ul>
+<h3 id="display-scale">Display scale</h3>
+<p>Available scale modes:</p>
+<ul>
+<li>1x: Fixed one-to-one display scale inside the visible emulator viewport.</li>
+<li>2x: Fixed double scale inside the visible emulator viewport.</li>
+<li>Fit: Fit the display to the available emulator panel area.</li>
+</ul>
+<p>Fixed scale modes may need scrolling or clipping if the emulator panel is smaller than the rendered surface. Fit mode is intended for normal responsive use.</p>
+<h3 id="scanlines">Scanlines</h3>
+<p>Scanlines are controlled through runtime video resources. If scanlines bother a user, disable them in Display.</p>
+<h3 id="fullscreen">Fullscreen</h3>
+<p>Fullscreen applies to the emulator panel. When fullscreen is entered, the emulator canvas is focused so keyboard input goes to the C64 without requiring a second click.</p>
+<h3 id="audio">Audio</h3>
+<p>Audio must be enabled by user action in most browsers because browser audio APIs require a gesture. The IDE exposes:</p>
+<ul>
+<li>Audio on/off.</li>
+<li>Mute.</li>
+<li>Volume.</li>
+<li>SID quality selector.</li>
+</ul>
+<p>SID quality options include FastSID and reSID modes.</p>
+<h3 id="drive-9">Drive 9</h3>
+<p>Drive 9 can be enabled or disabled. Some C64 programs assume only drive 8 exists and can fail if drive 9 is present. Disable drive 9 in Advanced when testing those programs.</p>
+<h2 id="debugger">Debugger</h2>
+<p>The Debugger tab provides source-oriented debugging support around the embedded runtime.</p>
+<p>Debugger features include:</p>
+<ul>
+<li>Manual breakpoint entry by address or symbol.</li>
+<li>Line breakpoints from the line map.</li>
+<li>Pause and resume.</li>
+<li>Refresh debugger state.</li>
+<li>Register display.</li>
+<li>Memory dump by address and length.</li>
+<li>Trace/current-line highlighting in debugger and source/line map views.</li>
+</ul>
+<h3 id="breakpoints">Breakpoints</h3>
+<p>Breakpoints can be added in three ways:</p>
+<ol>
+<li>Enter an address or symbol in the Debugger tab and click Add Breakpoint.</li>
+<li>Click the breakpoint marker in the Inspector line map.</li>
+<li>Click a line breakpoint entry in the Debugger line list.</li>
+</ol>
+<p>Breakpoint addresses are normalized to 16-bit C64 addresses.</p>
+<p>When a breakpoint is hit, the runtime pauses. The IDE switches to debugger context, captures register and memory state when the runtime bridge supports it, and highlights the corresponding source line and trace line.</p>
+<h3 id="pausing">Pausing</h3>
+<p>Manual pause acts like a debugger pause. It should capture the current execution address when possible and highlight the active line if the address maps to compiled source.</p>
+<h3 id="registers">Registers</h3>
+<p>The register panel displays:</p>
+<ul>
+<li>PC</li>
+<li>A</li>
+<li>X</li>
+<li>Y</li>
+<li>SP</li>
+<li>Flags</li>
+</ul>
+<p>The available fields depend on runtime monitor/debug exports. If the runtime bridge cannot expose a value, the UI leaves it blank or shows placeholder state.</p>
+<h3 id="memory">Memory</h3>
+<p>The memory panel reads a short range of C64 memory. Enter a start address or symbol and a byte count from 1 to 256, then refresh.</p>
+<p>Example addresses:</p>
+<pre><code class="language-text">$0400
+$d020
+screen_buffer</code></pre>
+<h3 id="line-map">Line map</h3>
+<p>The line map is one of the most useful debugging tools. It shows:</p>
+<ul>
+<li>Source line number.</li>
+<li>Mnemonic and operand.</li>
+<li>Start address.</li>
+<li>Emitted bytes.</li>
+<li>Branch target and relative offset when available.</li>
+<li>Breakpoint state.</li>
+<li>Trace state.</li>
+</ul>
+<p>Use it to validate branch offsets, asset import ranges, compiled code size, and generated addresses.</p>
+<h2 id="live-patching">Live patching</h2>
+<p>Live patching writes compiled changes into the running emulator so you can see changes quickly.</p>
+<p>When Live Patch is enabled:</p>
+<ol>
+<li>The IDE notices source or asset changes.</li>
+<li>The compiler rebuilds after the edit/paste debounce.</li>
+<li>If diagnostics are clean, the IDE determines whether the change can be patched.</li>
+<li>The runtime pauses briefly.</li>
+<li>The relevant memory bytes are written.</li>
+<li>The runtime resumes unless it was manually paused.</li>
+</ol>
+<h3 id="asset-live-patch">Asset live patch</h3>
+<p>Character and sprite edits are handled with a shadow-buffer style workflow:</p>
+<ul>
+<li>The editor updates local JavaScript bytes immediately.</li>
+<li>The visible grid and preview update from local state.</li>
+<li>A debounced project commit updates the virtual binary file.</li>
+<li>If the asset is imported into the running program and the line map contains a memory range for it, the dirty bytes are patched into emulator memory.</li>
+</ul>
+<p>This is much faster than writing every brush stroke directly to C64 memory.</p>
+<h3 id="full-prg-live-patch">Full PRG live patch</h3>
+<p>If an edit changes code or the changed asset cannot be isolated, the IDE can patch the full compiled PRG body into memory.</p>
+<h3 id="when-live-patch-waits">When live patch waits</h3>
+<p>Live patch does not write memory when:</p>
+<ul>
+<li>Compilation has diagnostics.</li>
+<li>The runtime is not started.</li>
+<li>No compatible memory write bridge is available.</li>
+<li>The changed asset is not imported into the currently loaded program.</li>
+<li>The current program code key no longer matches the loaded program.</li>
+</ul>
+<p>Status messages indicate whether bytes were patched, compilation is waiting, or an asset is not imported into the running program.</p>
+<h3 id="when-to-reload-instead">When to reload instead</h3>
+<p>Reload the PRG when:</p>
+<ul>
+<li>You changed startup code or initialization state.</li>
+<li>Your program copies assets to another address at runtime.</li>
+<li>Your program decompresses or transforms data after load.</li>
+<li>You changed a memory layout assumption.</li>
+<li>You want to reset C64 state completely.</li>
+</ul>
+<p>Live patch writes memory bytes, but it does not automatically rerun your initialization logic.</p>
+<h2 id="character-editor">Character editor</h2>
+<p>The Character Editor is a browser-local C64 character set editor.</p>
+<h3 id="character-data-model">Character data model</h3>
+<p>A C64 character is 8 bytes:</p>
+<ul>
+<li>8 rows.</li>
+<li>1 byte per row.</li>
+<li>In mono mode, 1 bit per pixel.</li>
+<li>In multicolor mode, 2-bit pairs per row, giving 4 logical columns that render as double-width pixels.</li>
+</ul>
+<p>A full character set is commonly:</p>
+<pre><code class="language-text">256 chars * 8 bytes = 2048 bytes</code></pre>
+<h3 id="creating-a-charset">Creating a charset</h3>
+<p>Use New Charset in the Char Editor. The default path is similar to:</p>
+<pre><code class="language-text">assets/chars/charset.chr</code></pre>
+<p>The editor adds the binary asset and its generated include file to the virtual filesystem.</p>
+<h3 id="char-editor-layout">Char editor layout</h3>
+<p>The Char Editor contains:</p>
+<ul>
+<li>Charset grid: 16x16 character preview grid.</li>
+<li>Pixel editor: Zoomed editor for the selected character.</li>
+<li>Toolbar: Pencil, erase, fill, copy, paste, duplicate, flip, and shift tools.</li>
+<li>Properties: Index, hex index, byte offset, label, include path.</li>
+<li>3x3 tile preview: Shows the selected character repeated to help design seamless background tiles.</li>
+<li>Palette and color slots.</li>
+<li>Generated include preview.</li>
+</ul>
+<h3 id="mono-mode">Mono mode</h3>
+<p>Mono mode has pixel values 0 and 1:</p>
+<ul>
+<li>0: Background color.</li>
+<li>1: Foreground color.</li>
+</ul>
+<p>The exported bytes are standard C64 character bytes.</p>
+<h3 id="multicolor-mode">Multicolor mode</h3>
+<p>Multicolor character mode has pixel values 0, 1, 2, and 3:</p>
+<ul>
+<li>0: Background/global color.</li>
+<li>1: Multicolor 1.</li>
+<li>2: Multicolor 2.</li>
+<li>3: Character-specific foreground color.</li>
+</ul>
+<p>The editor paints 2-bit horizontal pairs. Preview pixels are shown double-wide to match C64 multicolor geometry.</p>
+<h3 id="editing-tools">Editing tools</h3>
+<p>Available tools:</p>
+<ul>
+<li>Pencil: Paint selected value.</li>
+<li>Erase: Paint zero.</li>
+<li>Fill: Fill the current character.</li>
+<li>Copy/Paste: Copy and paste pixel data.</li>
+<li>Duplicate: Copy selected character into the next character slot.</li>
+<li>Flip X/Y.</li>
+<li>Shift left/right/up/down.</li>
+</ul>
+<p>Mouse drag continues painting. Right mouse or erase tool paints zero. Touch/pointer drawing is supported where the browser provides pointer events.</p>
+<h2 id="sprite-editor">Sprite editor</h2>
+<p>The Sprite Editor is a browser-local C64 hardware sprite editor.</p>
+<h3 id="sprite-data-model">Sprite data model</h3>
+<p>A C64 hardware sprite is:</p>
+<pre><code class="language-text">24 x 21 pixels
+63 bytes of pixel data
+1 padding byte in Web64 IDE sprite banks
+64 bytes per exported frame</code></pre>
+<p>The padding byte is included because VIC-II sprite pointers address 64-byte sprite slots.</p>
+<h3 id="creating-a-sprite-bank">Creating a sprite bank</h3>
+<p>Use New Sprite Bank in the Sprite Editor. The default path is similar to:</p>
+<pre><code class="language-text">assets/sprites/sprites.spr</code></pre>
+<p>The editor adds the binary asset and generated include file to the virtual filesystem.</p>
+<h3 id="sprite-editor-layout">Sprite editor layout</h3>
+<p>The Sprite Editor contains:</p>
+<ul>
+<li>Frame list: Selectable frame previews.</li>
+<li>Frame actions: Add, duplicate, copy, paste, delete, move left, move right.</li>
+<li>Pixel editor: Zoomed current frame editor.</li>
+<li>Toolbar: Pencil, erase, fill, flip, shift.</li>
+<li>Preview: Current frame preview.</li>
+<li>Animation controls: Play/pause, pingpong, onion skin, FPS.</li>
+<li>Properties: Frame index, byte offset, frame size, label, include path.</li>
+<li>Palette and color slots.</li>
+<li>Generated include preview.</li>
+</ul>
+<h3 id="mono-mode">Mono mode</h3>
+<p>Mono sprite mode has pixel values 0 and 1:</p>
+<ul>
+<li>0: Transparent/background.</li>
+<li>1: Sprite color.</li>
+</ul>
+<p>Rows export as 3 bytes per row, high bit leftmost.</p>
+<h3 id="multicolor-mode">Multicolor mode</h3>
+<p>Multicolor sprite mode has logical width 12 by height 21. Each logical pixel represents a 2-bit horizontal pair.</p>
+<p>Color slots:</p>
+<ul>
+<li>0: Transparent/background.</li>
+<li>1: Sprite multicolor 1.</li>
+<li>2: Sprite-specific color.</li>
+<li>3: Sprite multicolor 2.</li>
+</ul>
+<p>The third slot is intentionally exposed as the sprite-specific color because that is the color normally set per hardware sprite.</p>
+<h3 id="animation-preview">Animation preview</h3>
+<p>The animation preview runs from JavaScript editor memory, not from emulator memory. This keeps preview playback responsive while editing.</p>
+<p>Controls:</p>
+<ul>
+<li>Play/pause.</li>
+<li>Pingpong.</li>
+<li>FPS slider.</li>
+<li>Onion skin previous/next frame overlay.</li>
+</ul>
+<p>Onion skin shows neighboring frames at low opacity to help create animation continuity.</p>
+<h2 id="generated-include-files">Generated include files</h2>
+<p>Graphics assets can generate include files. These are visible in the project tree as generated virtual files and previewed in the asset editor.</p>
+<p>Generated includes are meant to be consumed by assembly. Edit the asset, not the generated include, unless you intentionally want a manual source file.</p>
+<h3 id="charset-include-labels">Charset include labels</h3>
+<p>For <code>assets/chars/logo.chr</code>, the label base is <code>logo</code>.</p>
+<p>Typical generated labels:</p>
+<pre><code class="language-asm">logo_chars_size = $0800
+logo_color_0 = 0
+logo_background_color = 0
+logo_color_1 = 5
+logo_multicolor_1 = 5
+logo_color_2 = 2
+logo_multicolor_2 = 2
+logo_color_3 = 1
+logo_foreground_color = 1
+logo_char_count = $0100
+logo_chars_end = logo_chars + logo_chars_size
+logo_char_0 = 0
+logo_char_1 = 1</code></pre>
+<p>Usage:</p>
+<pre><code class="language-asm">* = $3000
+.import binary logo_chars, &quot;assets/chars/logo.chr&quot;
+.include &quot;assets/chars/logo.inc&quot;</code></pre>
+<h3 id="sprite-include-labels">Sprite include labels</h3>
+<p>For <code>assets/sprites/player.spr</code>, the label base is <code>player</code>.</p>
+<p>Typical generated labels:</p>
+<pre><code class="language-asm">player_sprites_size = $80
+player_color_0 = 0
+player_background_color = 0
+player_color_1 = 6
+player_multicolor_1 = 6
+player_color_2 = $0c
+player_sprite_color = $0c
+player_color_3 = $0e
+player_multicolor_2 = $0e
+player_sprite_count = 2
+player_sprites_end = player_sprites + player_sprites_size
+player_frame_0 = player_sprites + 0
+player_frame_1 = player_sprites + $40</code></pre>
+<p>Usage:</p>
+<pre><code class="language-asm">* = $3000
+.import binary player_sprites, &quot;assets/sprites/player.spr&quot;
+.include &quot;assets/sprites/player.inc&quot;</code></pre>
+<p>The important sprite color constants are:</p>
+<ul>
+<li><code>player_color_1</code> or <code>player_multicolor_1</code>.</li>
+<li><code>player_color_2</code> or <code>player_sprite_color</code>.</li>
+<li><code>player_color_3</code> or <code>player_multicolor_2</code>.</li>
+</ul>
+<p>Use <code>player_sprite_color</code> for the per-sprite VIC-II color value.</p>
+<h2 id="snapshots-and-state">Snapshots and state</h2>
+<p>The IDE supports runtime state tools through the embedded Web64 runtime.</p>
+<h3 id="quick-save-and-quick-load">Quick Save and Quick Load</h3>
+<p>Quick Save stores a temporary runtime state in browser memory. Quick Load restores it during the current IDE session.</p>
+<p>This is useful for short testing loops, but it is not a project persistence mechanism.</p>
+<h3 id="export-snapshot">Export Snapshot</h3>
+<p>Export Snapshot saves a VICE snapshot file, usually <code>.vsf</code>, from the current runtime.</p>
+<p>Use this when you want a runtime state artifact outside the project file.</p>
+<h3 id="import-snapshot">Import Snapshot</h3>
+<p>Import Snapshot loads a <code>.vsf</code> or binary snapshot file into the runtime when supported by the runtime bridge.</p>
+<p>Snapshots are emulator state, not source state. They do not replace <code>.web64proj</code>.</p>
+<h2 id="keyboard-joystick-and-gamepad-input">Keyboard, joystick, and gamepad input</h2>
+<p>The embedded emulator receives keyboard and joystick input through the Web64 runtime input bridge.</p>
+<h3 id="keyboard-focus">Keyboard focus</h3>
+<p>The emulator canvas needs focus for C64 keyboard input. Fullscreen activation focuses the emulator automatically. If input does not work, click the emulator canvas once.</p>
+<h3 id="gamepad">Gamepad</h3>
+<p>Gamepad input can be enabled in the Input group.</p>
+<p>Options:</p>
+<ul>
+<li>Gamepad enable.</li>
+<li>Joystick port selector.</li>
+<li>Swap ports.</li>
+</ul>
+<p>Most C64 games use joystick port 2, but some use port 1.</p>
+<h3 id="drive-and-input-differences">Drive and input differences</h3>
+<p>Some C64 programs are sensitive to attached drives or input port state. If a program behaves differently in the IDE than on the root emulator page:</p>
+<ol>
+<li>Confirm the same PRG bytes were loaded.</li>
+<li>Confirm the same joystick port.</li>
+<li>Disable drive 9.</li>
+<li>Reset the runtime and reload.</li>
+<li>Test with audio and warp disabled if timing is relevant.</li>
+</ol>
+<h2 id="recommended-workflows">Recommended workflows</h2>
+<h3 id="new-assembly-program">New assembly program</h3>
+<ol>
+<li>Open <code>/ide</code>.</li>
+<li>Write or paste assembly into the main source editor.</li>
+<li>Set origin, commonly <code>$c000</code> for development PRGs.</li>
+<li>Confirm diagnostics show Compile ready.</li>
+<li>Click Start PRG.</li>
+<li>Use the line map to inspect addresses and emitted bytes.</li>
+<li>Save the project as <code>.web64proj</code>.</li>
+</ol>
+<h3 id="add-a-sprite-bank">Add a sprite bank</h3>
+<ol>
+<li>Open Sprite Editor.</li>
+<li>Create <code>assets/sprites/player.spr</code>.</li>
+<li>Draw frames.</li>
+<li>Set multicolor mode and color slots if needed.</li>
+<li>In source, add:</li>
+</ol>
+<pre><code class="language-asm">* = $3000
+.import binary player_sprites, &quot;assets/sprites/player.spr&quot;
+.include &quot;assets/sprites/player.inc&quot;</code></pre>
+<ol>
+<li>Use <code>player_frame_0</code>, <code>player_sprite_count</code>, and <code>player_sprite_color</code> in code.</li>
+<li>Start PRG.</li>
+<li>Edit the sprite and observe live patching if the program uses the imported bytes directly.</li>
+</ol>
+<h3 id="add-a-character-set">Add a character set</h3>
+<ol>
+<li>Open Char Editor.</li>
+<li>Create <code>assets/chars/tiles.chr</code>.</li>
+<li>Draw characters or tiles.</li>
+<li>Use 3x3 preview to test tile continuity.</li>
+<li>In source, add:</li>
+</ol>
+<pre><code class="language-asm">* = $3800
+.import binary tiles_chars, &quot;assets/chars/tiles.chr&quot;
+.include &quot;assets/chars/tiles.inc&quot;</code></pre>
+<ol>
+<li>Copy the charset to VIC-visible RAM or point VIC bank/screen setup at the imported location as appropriate.</li>
+</ol>
+<h3 id="use-split-source-files">Use split source files</h3>
+<ol>
+<li>Add virtual files such as:</li>
+</ol>
+<pre><code class="language-text">includes/constants.asm
+includes/macros.asm
+src/raster.asm</code></pre>
+<ol>
+<li>In the main source:</li>
+</ol>
+<pre><code class="language-asm">.include &quot;includes/constants.asm&quot;
+.include &quot;includes/macros.asm&quot;
+.include &quot;src/raster.asm&quot;</code></pre>
+<ol>
+<li>Keep paths project-relative.</li>
+<li>Save the project when the virtual file tree changes.</li>
+</ol>
+<h3 id="import-symbols-from-another-build">Import symbols from another build</h3>
+<ol>
+<li>Add a <code>.sym</code> file to the virtual tree.</li>
+<li>Include it:</li>
+</ol>
+<pre><code class="language-asm">.import source &quot;Main-BaseCode.sym&quot;</code></pre>
+<p>or:</p>
+<pre><code class="language-asm">.include &quot;Main-BaseCode.sym&quot;</code></pre>
+<ol>
+<li>Use imported labels in expressions.</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="pasting-a-large-source-block-makes-the-ide-slow">Pasting a large source block makes the IDE slow</h3>
+<p>Large paste operations are debounced before background compile. Wait briefly after the paste. If diagnostics still lag, check for very large generated sources or recursive macros.</p>
+<h3 id="the-browser-page-goes-black">The browser page goes black</h3>
+<p>A black page usually means an uncaught JavaScript exception. Current builds guard compiler failures and should show diagnostics instead. If it happens again:</p>
+<ol>
+<li>Reload the IDE.</li>
+<li>Reopen the last saved <code>.web64proj</code>.</li>
+<li>Paste the code into a small temporary source file first.</li>
+<li>Check for unterminated strings, unexpected macro recursion, or very large generated output.</li>
+</ol>
+<h3 id="include-file-not-found">Include file not found</h3>
+<p>Check:</p>
+<ul>
+<li>The file exists in the virtual file tree.</li>
+<li>The path uses forward slashes.</li>
+<li>The path is relative to the current source file or is an unambiguous project path.</li>
+<li>The extension is supported as text or binary.</li>
+</ul>
+<h3 id="binary-data-appears-as-garbage">Binary data appears as garbage</h3>
+<p>Check:</p>
+<ul>
+<li>The asset is included at the address your runtime code expects.</li>
+<li>Sprite data uses 64-byte slots in Web64 IDE <code>.spr</code> exports.</li>
+<li>Your runtime copy routine copies 64 bytes per sprite slot, or intentionally skips the padding byte.</li>
+<li>Your VIC-II memory bank and sprite pointers match the loaded address.</li>
+<li>You are not copying from the PRG load address instead of the label exported by <code>.import binary</code>.</li>
+</ul>
+<h3 id="live-patch-says-asset-changed-but-display-does-not-update">Live patch says asset changed but display does not update</h3>
+<p>Possible reasons:</p>
+<ul>
+<li>The running program copied the asset elsewhere at startup.</li>
+<li>The asset was transformed or decompressed by your code.</li>
+<li>The changed asset is not imported into the currently loaded PRG.</li>
+<li>The program reads from a different memory address than the import range.</li>
+<li>The change affects initialization code that needs to run again.</li>
+</ul>
+<p>Reload and restart the PRG when in doubt.</p>
+<h3 id="start-prg-goes-to-ready-or-syntax-error">Start PRG goes to READY or syntax error</h3>
+<p>Check:</p>
+<ul>
+<li>The selected entry label points to executable code.</li>
+<li>The program initialization returns only when intended.</li>
+<li>The generated SYS address is correct.</li>
+<li>Runtime keyboard/paste input is available.</li>
+</ul>
+<h3 id="breakpoint-does-not-hit">Breakpoint does not hit</h3>
+<p>Check:</p>
+<ul>
+<li>The breakpoint address exists in the current compile line map.</li>
+<li>The current loaded program matches the current compile result.</li>
+<li>The runtime monitor breakpoint bridge is available.</li>
+<li>The code path actually executes.</li>
+</ul>
+<h3 id="gamepad-does-not-work-in-the-ide">Gamepad does not work in the IDE</h3>
+<p>Check:</p>
+<ul>
+<li>Gamepad is enabled in Input.</li>
+<li>The correct joystick port is selected.</li>
+<li>Swap Ports is not putting input on the wrong port.</li>
+<li>The emulator canvas has focus.</li>
+<li>The browser has detected the gamepad after a button press.</li>
+</ul>
+<h3 id="drive-9-causes-problems">Drive 9 causes problems</h3>
+<p>Disable Drive 9 in Advanced. Some programs expect only drive 8 and fail when another drive is attached.</p>
+<h2 id="reference-tables">Reference tables</h2>
+<h3 id="common-file-extensions">Common file extensions</h3>
+<table>
+<thead><tr><th>Extension</th><th>Type</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td><code>.asm</code>, <code>.s</code></td><td>Source</td><td>Assembly source</td></tr>
+<tr><td><code>.inc</code>, <code>.txt</code>, <code>.mac</code></td><td>Source</td><td>Include files, macro files, text</td></tr>
+<tr><td><code>.sym</code></td><td>Symbols/source</td><td>Parsed as symbol source</td></tr>
+<tr><td><code>.chr</code>, <code>.ch8</code></td><td>Charset asset</td><td>Editable in Char Editor</td></tr>
+<tr><td><code>.spr</code></td><td>Sprite bank asset</td><td>Editable in Sprite Editor, 64 bytes per frame</td></tr>
+<tr><td><code>.bin</code>, <code>.raw</code>, <code>.dat</code></td><td>Binary</td><td>Usable with <code>.incbin</code> or <code>.import binary</code></td></tr>
+<tr><td><code>.sid</code>, <code>.prg</code>, <code>.seq</code>, <code>.scr</code>, <code>.koa</code></td><td>Binary</td><td>Stored as project binary records</td></tr>
+<tr><td><code>.web64proj</code></td><td>Project</td><td>Full Web64 IDE project</td></tr>
+<tr><td><code>.vsf</code></td><td>Snapshot</td><td>Runtime/emulator state</td></tr>
+</tbody></table>
+<h3 id="runtime-controls">Runtime controls</h3>
+<table>
+<thead><tr><th>Control</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Start</td><td>Load if needed and run selected entry point</td></tr>
+<tr><td>Pause</td><td>Pause runtime and refresh debug context</td></tr>
+<tr><td>Stop</td><td>Stop current runtime program activity</td></tr>
+<tr><td>Reset</td><td>Power reset C64 runtime</td></tr>
+<tr><td>Warp</td><td>Toggle fast runtime execution</td></tr>
+<tr><td>Live Patch</td><td>Patch compiled changes into running memory</td></tr>
+<tr><td>1x/2x/Fit</td><td>Display scaling mode</td></tr>
+<tr><td>Scanlines</td><td>Toggle video scanline effect</td></tr>
+<tr><td>Fullscreen</td><td>Expand emulator panel</td></tr>
+<tr><td>Audio</td><td>Enable browser audio</td></tr>
+<tr><td>Mute</td><td>Silence audio without changing runtime state</td></tr>
+<tr><td>SID quality</td><td>Select SID emulation quality/resource set</td></tr>
+<tr><td>Gamepad</td><td>Enable browser gamepad polling</td></tr>
+<tr><td>Joystick port</td><td>Choose port 1 or 2</td></tr>
+<tr><td>Swap Ports</td><td>Swap joystick assignment</td></tr>
+<tr><td>Quick Save/Load</td><td>Temporary in-memory runtime state</td></tr>
+<tr><td>Snapshot import/export</td><td>VICE snapshot file exchange</td></tr>
+<tr><td>Drive 9</td><td>Enable or disable second drive</td></tr>
+</tbody></table>
+<h3 id="generated-sprite-color-constants">Generated sprite color constants</h3>
+<table>
+<thead><tr><th>Constant</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>name_color_0</code></td><td>Transparent/background color reference</td></tr>
+<tr><td><code>name_background_color</code></td><td>Alias for color 0</td></tr>
+<tr><td><code>name_color_1</code></td><td>Sprite multicolor 1</td></tr>
+<tr><td><code>name_multicolor_1</code></td><td>Alias for color 1</td></tr>
+<tr><td><code>name_color_2</code></td><td>Sprite-specific color</td></tr>
+<tr><td><code>name_sprite_color</code></td><td>Alias for color 2</td></tr>
+<tr><td><code>name_color_3</code></td><td>Sprite multicolor 2</td></tr>
+<tr><td><code>name_multicolor_2</code></td><td>Alias for color 3</td></tr>
+</tbody></table>
+<h3 id="generated-charset-color-constants">Generated charset color constants</h3>
+<table>
+<thead><tr><th>Constant</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>name_color_0</code></td><td>Background/global color</td></tr>
+<tr><td><code>name_background_color</code></td><td>Alias for color 0</td></tr>
+<tr><td><code>name_color_1</code></td><td>Multicolor 1</td></tr>
+<tr><td><code>name_multicolor_1</code></td><td>Alias for color 1</td></tr>
+<tr><td><code>name_color_2</code></td><td>Multicolor 2</td></tr>
+<tr><td><code>name_multicolor_2</code></td><td>Alias for color 2</td></tr>
+<tr><td><code>name_color_3</code></td><td>Foreground/character color</td></tr>
+<tr><td><code>name_foreground_color</code></td><td>Alias for color 3</td></tr>
+</tbody></table>
+<h3 id="minimal-complete-example">Minimal complete example</h3>
+<pre><code class="language-asm">* = $c000
+
+BORDER = $d020
+BG = $d021
+
+.include &quot;assets/sprites/player.inc&quot;
+
+start:
+    sei
+    lda #0
+    sta BORDER
+    sta BG
+
+    lda #&lt;player_sprites
+    sta $07f8
+    lda #player_sprite_color
+    sta $d027
+
+main:
+    inc BORDER
+    jmp main
+
+* = $3000
+.import binary player_sprites, &quot;assets/sprites/player.spr&quot;</code></pre>
+<p>Save the sprite asset at <code>assets/sprites/player.spr</code>, then save the project. The generated include exposes the color and frame constants, and <code>.import binary</code> inserts the sprite bytes into the PRG.</p>
+</main>
+</body>
+</html>
