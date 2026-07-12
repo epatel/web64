@@ -4,6 +4,8 @@
 [web64 IDE](https://web64.nofs.ai/ide/), a browser-based editor + assembler +
 VICE emulator ([user manual](https://web64.nofs.ai/docs/web64-ide-user-manual.html)).
 
+![web64 IDE running the raytracer](docs/web64-ide-raytracer.jpg)
+
 ## Projects
 
 Each project lives under `projects/<name>/` and has its own `CLAUDE.md` with
@@ -32,5 +34,6 @@ layout, memory map, and testing notes.
   `.chr`, `.spr`, or PRG artifacts)
 - `cards/` — reference cards split from the web64 IDE user manual, loaded
   on demand while working
+- `docs/` — images and other repo documentation assets
 - `web64-ide-user-manual.html` — local copy of the full IDE manual (source
   of the cards)
