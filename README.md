@@ -16,6 +16,7 @@ layout, memory map, and testing notes.
 | [`breakout`](projects/breakout/) | Breakout game: sprite paddle/ball, 240 character bricks, BCD scoring, 3 lives. Joystick port 2 or A/D/SPACE. Single file. |
 | [`fixmath`](projects/fixmath/) | Signed 8.8 fixed-point math + hires graphics library. `lib/` here is the single source of truth. |
 | [`raytracer`](projects/raytracer/) | Mirror sphere over a checkered floor: shadows, sky gradient, animation-stable dithering (Bayer / white noise / blue noise). Uses fixmath's `lib/` via symlink. |
+| [`raytracer-c`](projects/raytracer-c/) | The raytracer with a Web64 C v0.1 front end: C entry point, init sequence, and runtime dither/seed globals; the fixed-point kernel stays assembly (symlinked from `raytracer`). |
 
 ## Workflow
 
