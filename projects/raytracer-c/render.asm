@@ -51,6 +51,22 @@ UT1     = DVD           ; umul16 temps (overlay divide registers)
 UT2     = DVS
 UT3     = DVD+2
 
+; --- gfx zero page + data (moved from lib/gfx.asm when the lib was
+; replaced by gfx.c; referenced by gfx.c asm blocks and main.c) ----
+GPTR    = $fb           ; 2 bytes  plot address pointer
+GPX     = $fd           ; 2 bytes  plot x (0-319)
+GPY     = $02           ; 1 byte   plot y (0-199)
+
+GFXBMP  = $2000
+
+gfx_bits:
+        .byte $80, $40, $20, $10, $08, $04, $02, $01
+
+ytab_lo:
+        .fill 200, 0
+ytab_hi:
+        .fill 200, 0
+
 ; --- transition bridges: asm callers (trace.asm) -> C fixmath ----
 ; Removed in Phase 3 when trace.asm becomes trace.c.
 fmul:
@@ -59,10 +75,6 @@ fdiv:
         jmp _fdiv
 fsqrt:
         jmp _fsqrt
-
-; --- C-callable wrappers -----------------------------------------
-asm_gfx_init:
-        jmp gfx_init
 
 ; --- asm_noise_init: fill ntab deterministically from _noise_seed
 ; Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same

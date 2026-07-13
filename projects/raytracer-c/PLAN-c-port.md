@@ -44,19 +44,18 @@ render.asm, which also carries transition bridges for trace.asm callers
 (`fmul: jmp _fmul`, fdiv, fsqrt — removed in Phase 3). Verified: self-test
 green with the asm lib gone, full-frame golden image identical.
 
-## Phase 2 — gfx.c
-1. `gfx_init` — genuinely real C: VIC/bank registers via
-   `*(volatile uint8_t *)` writes. The one file section that becomes
-   readable C with zero asm.
-2. `gfx_clear` — 8KB clear loop → scaffold (or keep the page-loop asm
-   verbatim in one block).
-3. `gfx_plot` — needs y-address and bit-mask tables: arrays are impossible
-   in C, so tables move to a small `gfxdata.asm` (pure `.byte` data, stays
-   assembly permanently alongside the dither tables).
-4. `gfx_line` / `gfx_circle` — unused by the raytracer. Decide: port last
-   for completeness or drop from raytracer-c and note that the fixmath
-   project keeps them. Recommend: drop here, keep lean.
-Golden-image check, commit.
+## Phase 2 — gfx.c ✅ DONE (2026-07-13)
+`gfx_init` is real C (VIC writes via c64.h pointer constants; only the
+CIA2 bank-select read-modify-write stays asm — no |= in v0.1);
+`gfx_clear`/`gfx_plot` are asm-scaffold C functions (labels cg*).
+Tables (gfx_bits, ytab_lo/hi) and GPTR/GPX/GPY equates moved into
+render.asm rather than a separate gfxdata.asm — it already holds the
+dither tables. `gfx_line`/`gfx_circle` dropped (unused; fixmath project
+keeps the asm originals). Bonus: the render loop's plot decision became
+a C `if (do_plot & 1)` with `gfx_plot()` as a real C call, so no gfx
+bridges were ever needed. `lib/gfx.asm` removed from the build and the
+`lib/` symlink deleted — the project is now standalone. Verified:
+golden image identical.
 
 ## Phase 3 — trace.c (the payoff)
 `trace_pixel` is a long straight-line sequence of fixmath calls, 16-bit

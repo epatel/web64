@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 #include "fixmath.h"
+#include "gfx.h"
 #include "selftest.h"
 
 /* Dither mode, read per pixel at runtime. 0 = ordered 4x4 Bayer,
@@ -40,6 +41,10 @@ uint8_t noise_seed = 0x5a;
    is therefore inline asm; C only declares the storage. */
 uint16_t px = 0;
 uint8_t py = 0;
+
+/* plot decision flag, set per pixel by an asm compare (v0.1 C has
+   no >): 1 when SHADE > threshold */
+uint8_t do_plot = 0;
 
 /* --- render: for every pixel, trace then dither ----------------
    Same algorithm as projects/raytracer main.asm `render`, with the
@@ -70,8 +75,12 @@ void render(void) {
         asm("    lda _py\n    and #$0f\n    asl\n    asl\n    asl\n    asl\n    sta BAYIX\n    lda _px\n    and #$0f\n    clc\n    adc BAYIX\n    tax\n    lda bnoise,x\n    sta DTH");
     }
 
-    /* plot if SHADE > DTH */
-    asm("    lda SHADE\n    cmp DTH\n    bcc rn_dark\n    beq rn_dark\n    lda _px\n    sta GPX\n    lda _px+1\n    sta GPX+1\n    lda _py\n    sta GPY\n    jsr gfx_plot\nrn_dark:");
+    /* plot if SHADE > DTH — the compare sets _do_plot, C branches */
+    asm("    ldx #$00\n    lda SHADE\n    cmp DTH\n    bcc rn_dark\n    beq rn_dark\n    inx\nrn_dark:\n    stx _do_plot");
+    if (do_plot & 1) {
+        asm("    lda _px\n    sta GPX\n    lda _px+1\n    sta GPX+1\n    lda _py\n    sta GPY");
+        gfx_plot();
+    }
 
     /* px++ in asm: the v0.1 lowering of a uint16_t increment does
        not carry into the high byte (verified: the x loop wrapped at
@@ -97,7 +106,7 @@ void main(void) {
     asm("st_halt:\n    jmp st_halt");
     */
 
-    asm_gfx_init();    /* hires bitmap at $2000, cleared            */
+    gfx_init();        /* hires bitmap at $2000, cleared (C gfx.c)  */
     asm_noise_init();  /* LFSR noise table from _noise_seed         */
     render();          /* C render loop above                       */
     asm("halt:\n    jmp halt");

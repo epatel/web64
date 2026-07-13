@@ -33,14 +33,18 @@ constant defines survive preprocessing (all tested against the compiler).
   now in render.asm); trace.asm reaches fmul/fdiv/fsqrt via bridge
   labels in render.asm until Phase 3. `lib/fixmath.asm` is no longer in
   the build (the lib/ symlink remains for gfx.asm).
+- `gfx.c` / `gfx.h` — the gfx lib in C (Phase 2): `gfx_init` is real C
+  (VIC pointer writes), `gfx_clear`/`gfx_plot` asm-scaffold functions.
+  `gfx_line`/`gfx_circle` intentionally not ported (unused here; the
+  fixmath project keeps the asm originals). The render loop calls
+  `gfx_plot()` as a C call behind a C `if (do_plot & 1)`.
 - `selftest.c` / `selftest.h` — `fx_selftest()`: exact-value checks for
-  umul16_c/fmul/fdiv/fsqrt into `selftest_ok`; enable via the toggle
+  umul16/fmul/fdiv/fsqrt into `selftest_ok`; enable via the toggle
   block in `main()` (border green = pass, red = fail). The fast smoke
   test while porting fixmath — seconds instead of a 2.5-minute render.
 - `scene.asm`, `trace.asm` — **symlinks to `../raytracer/`** (source of
-  truth; kernel is byte-identical)
-- `lib/` — **symlink to `../fixmath/lib`** (source of truth; files break
-  the symlink as their C port lands — see PLAN-c-port.md)
+  truth; kernel is byte-identical). The former `lib/` symlink is gone —
+  both libs now live here as C.
 
 ## Web64 C v0.1 pitfalls hit here (all verified in the IDE)
 - `asm()` takes ONE string literal — adjacent-literal concatenation
