@@ -20,9 +20,9 @@ file layout, memory map, conventions, and testing notes — read it before worki
   the single source of truth (raytracer symlinks it)
 - `projects/raytracer/` — mirror sphere over a checkered floor: shadows, sky gradient,
   animation-stable dithering (Bayer / white noise / blue noise)
-- `projects/raytracer-c/` — same image with a Web64 C v0.1 front end: C owns entry,
-  init, tuning globals, and the render loop (inline-asm control-flow scaffolding);
-  the 8.8 kernel stays assembly (symlinked from raytracer)
+- `projects/raytracer-c/` — same image, fully ported to Web64 C v0.1: all executable
+  code is C (main/trace/fixmath/gfx as C modules; arithmetic in inline-asm blocks,
+  branching as C ifs on asm-set flags); only data/equates remain assembly
 
 ## Cards
 

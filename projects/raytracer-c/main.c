@@ -47,6 +47,14 @@ uint8_t py = 0;
    no >): 1 when SHADE > threshold */
 uint8_t do_plot = 0;
 
+/* --- noise_init: fill ntab deterministically from noise_seed ----
+   Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same
+   table, same dither pattern on every run. The shift/carry loop
+   stays one asm block; ntab is data in render.asm. */
+void noise_init(void) {
+    asm("    lda _noise_seed\n    ldx #$00\ncni_loop:\n    lsr\n    bcc cni_skip\n    eor #$b8\ncni_skip:\n    sta ntab,x\n    inx\n    bne cni_loop");
+}
+
 /* --- render: for every pixel, trace then dither ----------------
    Same algorithm as projects/raytracer main.asm `render`, with the
    loop skeleton and mode dispatch lifted into C. trace_pixel takes
@@ -109,7 +117,7 @@ void main(void) {
     */
 
     gfx_init();        /* hires bitmap at $2000, cleared (C gfx.c)  */
-    asm_noise_init();  /* LFSR noise table from _noise_seed         */
+    noise_init();      /* LFSR noise table from noise_seed          */
     render();          /* C render loop above                       */
     asm("halt:\n    jmp halt");
 }

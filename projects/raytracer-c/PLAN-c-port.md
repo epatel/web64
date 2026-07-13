@@ -71,14 +71,23 @@ manipulated at runtime). trace.asm symlink deleted; scene.asm stays
 if bodies work; golden image identical. Stretch goal (scene constants
 as C globals) not taken — left for later if wanted.
 
-## Phase 4 — render.asm remnants + cleanup
-- `asm_noise_init` → C scaffold (LFSR shift/carry stays one asm block);
-  wrappers `asm_fx_init`/`asm_gfx_init` disappear once fixmath/gfx are C
-  (C calls `fx_init()`/`gfx_init()` directly).
-- What remains assembly forever (v0.1): `gfxdata.asm` + dither tables
-  (data), zp equates, scene equates unless lifted.
-- Regenerate `raytracer-c.web64proj`, update CLAUDE.md file table and the
-  c-compiler card if new compiler behavior surfaced, README blurb, commit.
+## Phase 4 — render.asm remnants + cleanup ✅ DONE (2026-07-13)
+`noise_init` moved to main.c (LFSR loop as one asm scaffold); the last
+asm_* wrapper was already gone. render.asm now contains ZERO code —
+only zp equates, .word scratch registers, and data tables. Verified:
+mode-1 white-noise spot render (exercises the C noise_init's ntab) plus
+the mode-2 golden image, both correct.
+
+## PORT COMPLETE — final state
+Executable code: 100% C modules (main.c, trace.c, fixmath.c, gfx.c,
+selftest.c). Assembly that remains, all non-executable, all things
+Web64 C v0.1 fundamentally cannot hold:
+- render.asm: zero-page equates, 16-bit scratch registers, data tables
+- scene.asm (symlink): scene constant equates
+Future compiler versions can migrate the asm() block contents to real C
+statement-by-statement; the structure is already in place. Possible
+follow-up (not done): lift scene constants to C globals for a
+runtime-tweakable scene.
 
 ## Risks / open questions
 - Multi-module C build and C→C cross-file calls: unverified (Phase 0.1).

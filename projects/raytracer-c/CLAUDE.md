@@ -22,11 +22,11 @@ constant defines survive preprocessing (all tested against the compiler).
   branches. Owns the tuning globals `dither_mode` (0 Bayer / 1 white noise
   / 2 blue noise) and `noise_seed`, read at RUNTIME — changing dither mode
   needs no reassembly of the kernel.
-- `render.asm` — what the C subset genuinely cannot hold: PX/PY/SHADE
-  zero-page equates, `asm_fx_init`/`asm_gfx_init` wrappers,
-  `asm_noise_init` (LFSR needs shifts/carry), and the dither tables
-  (bayer4, ntab, bnoise, BAYIX, DTH). No org: code flows after the
-  generated C module from the project origin.
+- `render.asm` — pure data module, NO code (since Phase 4): zero-page
+  equates (PX/PY/SHADE, fixmath registers, GPTR/GPX/GPY), the 16-bit
+  trace scratch registers, and the data tables (bayer4, ntab, bnoise,
+  gfx_bits, ytab). Everything executable is C; this file holds what
+  v0.1 fundamentally cannot (zp, runtime 16-bit ops, arrays).
 - `fixmath.c` / `fixmath.h` — the fixmath library in C (Phase 1 of
   PLAN-c-port.md complete): fx_init, umul16 (self-modifying, verbatim),
   fmul, udiv24, fdiv, isqrt24, fsqrt. Same zero-page interface (equates

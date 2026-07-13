@@ -1,23 +1,16 @@
 ; ---------------------------------------------------------------
-; RAYTRACER-C — assembly support (init wrappers, noise, tables)
+; RAYTRACER-C — assembly data module (NO code since Phase 4)
 ;
-; The render loop itself lives in main.c as a C function with
-; inline-asm control-flow scaffolding; this module keeps only what
-; the C subset genuinely cannot hold:
-;   - the zero-page equates for the trace kernel interface
-;   - asm_* init wrappers C calls via `jsr asm_*`
-;   - noise_init (LFSR needs shifts/carry)
-;   - the dither threshold tables (no C arrays)
-; Inline asm in main.c references PX/PY/SHADE, BAYIX, DTH, bayer4,
-; ntab, bnoise, trace_pixel, GPX/GPY, gfx_plot directly — one
-; shared assembler symbol namespace.
+; Everything executable lives in the C modules (main.c, trace.c,
+; fixmath.c, gfx.c). This file holds only what Web64 C v0.1
+; fundamentally cannot: zero-page equates, .word scratch registers
+; (runtime ops on C word globals are low-byte-only), and .byte/
+; .fill data tables (no C arrays). The C asm() blocks reference
+; all of it by name — one shared assembler symbol namespace.
 ;
-; No org here: code flows after the generated C module from the
-; project origin ($4000, above the bitmap at $2000-$3f3f).
-;
-; scene.asm / trace.asm / lib are shared with projects/raytracer
-; and projects/fixmath (symlinks; those projects are the source
-; of truth) — the per-pixel kernel is byte-identical.
+; No org: data flows after the generated C module from the project
+; origin ($4000, above the bitmap at $2000-$3f3f).
+; scene.asm (equates) is symlinked from projects/raytracer.
 ; ---------------------------------------------------------------
 
 PX      = $03           ; 2 bytes  current pixel x (0-319)
@@ -96,22 +89,6 @@ SMPT:   .word 0         ; sky shade scratch
 OCZ:    .word 0         ; shadow ray: hit z - sphere z
 SB:     .word 0         ; N.L / oc.L accumulator
 SC:     .word 0         ; oc.oc - r^2 accumulator
-
-; --- asm_noise_init: fill ntab deterministically from _noise_seed
-; Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same
-; table, same dither pattern on every run.
-asm_noise_init:
-        lda _noise_seed
-        ldx #$00
-ni_loop:
-        lsr
-        bcc ni_skip
-        eor #$b8
-ni_skip:
-        sta ntab,x
-        inx
-        bne ni_loop
-        rts
 
 bayer4:
         .byte  0,  8,  2, 10
