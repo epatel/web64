@@ -1,13 +1,16 @@
 ; ---------------------------------------------------------------
-; RAYTRACER-C — assembly side (render loop + C entry wrappers)
+; RAYTRACER-C — assembly support (init wrappers, noise, tables)
 ;
-; Companion to main.c (Web64 C v0.1). The C compiler lowers C to
-; assembly and hands it to the same assembler, ordered before this
-; module, so both sides share one symbol namespace:
-;   - C calls asm_* labels defined here (jsr asm_fx_init, ...)
-;   - this module reads C globals via their underscore labels
-;     (_dither_mode, _noise_seed) at runtime — the pure-asm
-;     raytracer bakes these in as assemble-time equates instead
+; The render loop itself lives in main.c as a C function with
+; inline-asm control-flow scaffolding; this module keeps only what
+; the C subset genuinely cannot hold:
+;   - the zero-page equates for the trace kernel interface
+;   - asm_* init wrappers C calls via `jsr asm_*`
+;   - noise_init (LFSR needs shifts/carry)
+;   - the dither threshold tables (no C arrays)
+; Inline asm in main.c references PX/PY/SHADE, BAYIX, DTH, bayer4,
+; ntab, bnoise, trace_pixel, GPX/GPY, gfx_plot directly — one
+; shared assembler symbol namespace.
 ;
 ; No org here: code flows after the generated C module from the
 ; project origin ($4000, above the bitmap at $2000-$3f3f).
@@ -26,96 +29,6 @@ asm_fx_init:
         jmp fx_init
 asm_gfx_init:
         jmp gfx_init
-asm_render:
-        jmp render
-
-; --- render: for every pixel, trace then dither ------------------
-render:
-        lda #$00
-        sta PY
-rn_yloop:
-        lda #$00
-        sta PX
-        sta PX+1
-rn_xloop:
-        jsr trace_pixel ; -> SHADE (0-15)
-        ; threshold: plot if SHADE > threshold(x, y)
-        lda _dither_mode
-        beq rn_bayer
-        cmp #$02
-        beq rn_blue
-        ; seeded noise: Pearson hash T[T[x] ^ y] & 15 — consecutive
-        ; LFSR entries correlate, so hash instead of walking ntab
-        lda PX
-        clc
-        adc PX+1
-        tax
-        lda ntab,x
-        eor PY
-        tax
-        lda ntab,x
-        and #$0f
-        jmp rn_cmp
-rn_blue:
-        ; blue noise: bnoise[(y&15)*16 + (x&15)]
-        lda PY
-        and #$0f
-        asl
-        asl
-        asl
-        asl
-        sta BAYIX
-        lda PX
-        and #$0f
-        clc
-        adc BAYIX
-        tax
-        lda bnoise,x
-        jmp rn_cmp
-rn_bayer:
-        ; ordered Bayer 4x4: bayer[(py&3)*4 + (px&3)]
-        lda PY
-        and #$03
-        asl
-        asl
-        sta BAYIX
-        lda PX
-        and #$03
-        clc
-        adc BAYIX
-        tax
-        lda bayer4,x
-rn_cmp:
-        sta DTH
-        lda SHADE
-        cmp DTH
-        bcc rn_dark
-        beq rn_dark
-        lda PX
-        sta GPX
-        lda PX+1
-        sta GPX+1
-        lda PY
-        sta GPY
-        jsr gfx_plot
-rn_dark:
-        inc PX
-        bne rn_xchk
-        inc PX+1
-rn_xchk:
-        lda PX+1
-        cmp #>320
-        bcc rn_xloop
-        lda PX
-        cmp #<320
-        bcc rn_xloop
-        inc PY
-        lda PY
-        cmp #200
-        bcs rn_done
-        jmp rn_yloop
-rn_done:
-        rts
 
 ; --- asm_noise_init: fill ntab deterministically from _noise_seed
 ; Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same
@@ -165,7 +78,3 @@ bnoise:
         .byte 14, 11,  7, 15, 10,  6, 15,  9, 13,  8, 15,  4, 12,  5,  2,  8
         .byte  3,  5,  1,  9,  1,  3, 10,  1,  4, 11,  0,  7,  3, 11, 15, 10
         .byte 13,  9, 12,  6, 14,  8, 12,  7, 14,  2,  6, 14,  9,  0,  7,  1
-
-; No .includes here: with C enabled, the IDE build graph assembles
-; every project .asm file as a module automatically — including
-; scene.asm, trace.asm, and the lib files would duplicate symbols.

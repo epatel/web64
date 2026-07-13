@@ -2,24 +2,55 @@
 
 Same image as `projects/raytracer` (mirror sphere, checkered floor, shadows,
 sky gradient, animation-stable dithering), but the entry point, startup
-sequence, and runtime tuning live in C. Web64 C v0.1 has no loops, arrays,
-or general expressions, so the render loop and 8.8 math kernel stay in
-assembly — this is the mixed C/assembly boundary the IDE manual recommends,
-not a limitation we chose.
+sequence, runtime tuning, AND the render loop live in C. Web64 C v0.1 has
+no loop statements, arrays, arithmetic, or comparisons, so the render loop
+in `main.c` scaffolds its control flow with inline `asm()` labels/branches
+around lowered C statements (emission order is linear, so this works —
+verified pixel-identical against the pure-asm raytracer). The 8.8 math
+kernel (trace_pixel, fixmath, gfx) stays in assembly modules.
+
+A macro utility header for the missing constructs is NOT possible:
+function-like `#define` is not expanded at all, and object-like `#define`
+expands only in expression position (constants). Only include guards and
+constant defines survive preprocessing (all tested against the compiler).
 
 ## Files
-- `main.c` — C entry (`main` → `_main`): `sei`, init calls, render, halt.
-  Owns the tuning globals `dither_mode` (0 Bayer / 1 white noise / 2 blue
-  noise) and `noise_seed`, which the assembly reads at RUNTIME as
-  `_dither_mode` / `_noise_seed` — unlike the pure-asm raytracer, changing
-  dither mode needs no reassembly of the kernel.
-- `render.asm` — render loop, dither tables, `asm_*` wrappers
-  (`asm_fx_init`, `asm_gfx_init`, `asm_noise_init`, `asm_render`) that C
-  calls via `jsr`. `.include`s everything below. No org: code flows after
-  the generated C module from the project origin.
+- `main.c` — C entry (`main` → `_main`) and the C `render()` loop: loop
+  counters `px`/`py` as C globals, dither mode dispatch as flat C bit-test
+  `if`s (Bayer computed unconditionally, mode bits override), short inline
+  asm blocks for zero-page marshalling, table lookups, compares, and loop
+  branches. Owns the tuning globals `dither_mode` (0 Bayer / 1 white noise
+  / 2 blue noise) and `noise_seed`, read at RUNTIME — changing dither mode
+  needs no reassembly of the kernel.
+- `render.asm` — what the C subset genuinely cannot hold: PX/PY/SHADE
+  zero-page equates, `asm_fx_init`/`asm_gfx_init` wrappers,
+  `asm_noise_init` (LFSR needs shifts/carry), and the dither tables
+  (bayer4, ntab, bnoise, BAYIX, DTH). No org: code flows after the
+  generated C module from the project origin.
+- `fixmath.c` / `fixmath.h` — C port of the fixmath lib, in progress
+  (see PLAN-c-port.md). Currently: `umul16_c` (verbatim self-modifying
+  multiply, labels cua*/cub* to coexist with the lib copy).
+- `selftest.c` / `selftest.h` — `fx_selftest()`: exact-value checks for
+  umul16_c/fmul/fdiv/fsqrt into `selftest_ok`; enable via the toggle
+  block in `main()` (border green = pass, red = fail). The fast smoke
+  test while porting fixmath — seconds instead of a 2.5-minute render.
 - `scene.asm`, `trace.asm` — **symlinks to `../raytracer/`** (source of
   truth; kernel is byte-identical)
-- `lib/` — **symlink to `../fixmath/lib`** (source of truth)
+- `lib/` — **symlink to `../fixmath/lib`** (source of truth; files break
+  the symlink as their C port lands — see PLAN-c-port.md)
+
+## Web64 C v0.1 pitfalls hit here (all verified in the IDE)
+- `asm()` takes ONE string literal — adjacent-literal concatenation
+  (`"a" "b"`) is not performed; fragments leak into the assembly output
+  as quoted garbage. Write each block as a single string with `\n`.
+- `uint16_t` globals: the initializer emits a proper `.WORD`, but ALL
+  runtime operations lower low-byte-only — `px++` doesn't carry into
+  `_px+1`, `px = 0` doesn't clear `_px+1`. Do every 16-bit manipulation
+  in inline asm; C only declares the storage.
+- C-lowered loop bodies are long: backward branches easily exceed the
+  6502's -128 range — use `jmp` trampolines for loop-back edges.
+- `if (x & MASK) { ...asm()... }` works and keeps emission order; flat
+  ifs with unconditional default beat if/else (no `else` in v0.1).
 
 ## How the mixed build works (verified in the IDE 2026-07-13)
 - IDE setup: open `raytracer-c.web64proj` (generated from the repo sources;

@@ -59,6 +59,22 @@ routines that don't need the tiny runtime I/O shims). `runtimeProfile`: `tiny` o
 NOT supported: complex expressions, arrays, loops, nested/general control flow, full
 preprocessing, full libc, broad struct semantics, cc65/ca65 syntax and directives.
 
+## v0.1 pitfalls (empirical, verified 2026-07-13; not in the manual)
+
+- Loops CAN be recreated with inline-asm scaffolding: `asm("label:")` … C statements …
+  `asm("    dec _var\n    bne label")`. Emission order is linear, so backward branches
+  over lowered C code work. C-lowered bodies are long — loop-back edges often exceed
+  the ±128 branch range and need `jmp` trampolines.
+- Macros can NOT do this: function-like `#define` is never expanded; object-like
+  `#define` expands in expression position only. Include guards work.
+- `asm()` takes ONE string literal — adjacent-literal concatenation (`"a" "b"`) is not
+  performed; fragments leak into the assembly as quoted garbage.
+- `uint16_t` globals: initializers emit a proper `.WORD`, but all runtime operations
+  (`=`, `++`) lower low-byte-only with no carry — do 16-bit manipulation in inline asm.
+- Also accepted beyond the documented lists: `CIA1->pra`, `VICII->sprite0_x/…` register
+  fields, struct member `++`/`--`, global-to-global assignment, and
+  `.incbin label, "path"` in the assembler (labels the bytes like `.import binary`).
+
 ## Include resolution
 
 Virtual includes only — `#include <stdint.h>`, `#include "include/game.h"`, etc.

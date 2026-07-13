@@ -21,7 +21,8 @@ file layout, memory map, conventions, and testing notes — read it before worki
 - `projects/raytracer/` — mirror sphere over a checkered floor: shadows, sky gradient,
   animation-stable dithering (Bayer / white noise / blue noise)
 - `projects/raytracer-c/` — same image with a Web64 C v0.1 front end: C owns entry,
-  init, and runtime tuning globals; kernel stays assembly (symlinked from raytracer)
+  init, tuning globals, and the render loop (inline-asm control-flow scaffolding);
+  the 8.8 kernel stays assembly (symlinked from raytracer)
 
 ## Cards
 
