@@ -21,8 +21,9 @@ file layout, memory map, conventions, and testing notes — read it before worki
 - `projects/raytracer/` — mirror sphere over a checkered floor: shadows, sky gradient,
   animation-stable dithering (Bayer / white noise / blue noise)
 - `projects/raytracer-c/` — same image, fully ported to Web64 C v0.1: all executable
-  code is C (main/trace/fixmath/gfx as C modules; arithmetic in inline-asm blocks,
-  branching as C ifs on asm-set flags); only data/equates remain assembly
+  code is C (main/trace/fixmath/gfx/scene as C modules; arithmetic in inline-asm
+  blocks, branching as C ifs on asm-set flags); scene constants are runtime C
+  globals; only one data/equates .asm remains. Standalone — no symlinks.
 
 ## Cards
 

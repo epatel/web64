@@ -85,9 +85,14 @@ Web64 C v0.1 fundamentally cannot hold:
 - render.asm: zero-page equates, 16-bit scratch registers, data tables
 - scene.asm (symlink): scene constant equates
 Future compiler versions can migrate the asm() block contents to real C
-statement-by-statement; the structure is already in place. Possible
-follow-up (not done): lift scene constants to C globals for a
-runtime-tweakable scene.
+statement-by-statement; the structure is already in place.
+
+Follow-up ✅ DONE (2026-07-13): scene constants lifted to C globals
+(scene.c/scene.h, scene.asm symlink removed) — trace.c's asm blocks
+load them from memory at runtime, so the scene is tweakable without
+reassembling the kernel. Golden image identical. The project is fully
+standalone: no symlinks, no asm sources except the render.asm data
+module.
 
 ## Risks / open questions
 - Multi-module C build and C→C cross-file calls: unverified (Phase 0.1).

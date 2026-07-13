@@ -50,9 +50,12 @@ constant defines survive preprocessing (all tested against the compiler).
   are flat sequential guards on `shad_ok`); the 8.8 math sequences are
   asm blocks calling the C fixmath. Scratch .word registers live in
   render.asm.
-- `scene.asm` — **symlink to `../raytracer/`** (source of truth): scene
-  equates, referenced by name from trace.c's asm blocks. The trace.asm
-  and lib/ symlinks are gone — everything else now lives here as C.
+- `scene.c` / `scene.h` — the scene as C globals, read at RUNTIME by
+  trace.c's asm blocks (`_sph_cy`, `_lgt_x`, ...): sphere, light,
+  floor, shade levels are tweakable (or animatable) without touching
+  the kernel. Derived constants (sph_c2r, ocy_ly, cc_sh) must still be
+  recomputed by hand — formulas in the file header. All symlinks to
+  the asm projects are gone; the project is fully standalone.
 
 ## Web64 C v0.1 pitfalls hit here (all verified in the IDE)
 - `asm()` takes ONE string literal — adjacent-literal concatenation
