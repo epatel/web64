@@ -27,9 +27,12 @@ constant defines survive preprocessing (all tested against the compiler).
   `asm_noise_init` (LFSR needs shifts/carry), and the dither tables
   (bayer4, ntab, bnoise, BAYIX, DTH). No org: code flows after the
   generated C module from the project origin.
-- `fixmath.c` / `fixmath.h` — C port of the fixmath lib, in progress
-  (see PLAN-c-port.md). Currently: `umul16_c` (verbatim self-modifying
-  multiply, labels cua*/cub* to coexist with the lib copy).
+- `fixmath.c` / `fixmath.h` — the fixmath library in C (Phase 1 of
+  PLAN-c-port.md complete): fx_init, umul16 (self-modifying, verbatim),
+  fmul, udiv24, fdiv, isqrt24, fsqrt. Same zero-page interface (equates
+  now in render.asm); trace.asm reaches fmul/fdiv/fsqrt via bridge
+  labels in render.asm until Phase 3. `lib/fixmath.asm` is no longer in
+  the build (the lib/ symlink remains for gfx.asm).
 - `selftest.c` / `selftest.h` — `fx_selftest()`: exact-value checks for
   umul16_c/fmul/fdiv/fsqrt into `selftest_ok`; enable via the toggle
   block in `main()` (border green = pass, red = fail). The fast smoke

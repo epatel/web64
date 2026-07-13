@@ -24,9 +24,43 @@ PX      = $03           ; 2 bytes  current pixel x (0-319)
 PY      = $05           ; 1 byte   current pixel y (0-199)
 SHADE   = $06           ; 1 byte   pixel brightness 0-15
 
+; --- fixmath zero page + tables (moved from lib/fixmath.asm when
+; the lib was replaced by fixmath.c; the C asm blocks, selftest.c,
+; and trace.asm all reference these) ------------------------------
+SQR1LO  = $c000         ; quarter-square tables, 512 bytes each
+SQR1HI  = $c200
+SQR2LO  = $c400
+SQR2HI  = $c600
+
+MULA    = $57           ; 2 bytes  multiplier
+MULB    = $59           ; 2 bytes  multiplicand (destroyed)
+PROD    = $5b           ; 4 bytes  product
+DVD     = $5f           ; 3 bytes  dividend / quotient
+DVS     = $62           ; 2 bytes  divisor
+REM     = $64           ; 2 bytes  remainder
+SQN     = $66           ; 3 bytes  sqrt input (destroyed)
+SQROOT  = $69           ; 2 bytes  sqrt result
+SQREM   = $6b           ; 2 bytes  sqrt scratch
+SGN     = $6d           ; 1 byte   sign scratch
+FXR     = $6e           ; 2 bytes  fixed-point result
+
+FXA     = MULA          ; fixed-point operand aliases
+FXB     = MULB
+
+UT1     = DVD           ; umul16 temps (overlay divide registers)
+UT2     = DVS
+UT3     = DVD+2
+
+; --- transition bridges: asm callers (trace.asm) -> C fixmath ----
+; Removed in Phase 3 when trace.asm becomes trace.c.
+fmul:
+        jmp _fmul
+fdiv:
+        jmp _fdiv
+fsqrt:
+        jmp _fsqrt
+
 ; --- C-callable wrappers -----------------------------------------
-asm_fx_init:
-        jmp fx_init
 asm_gfx_init:
         jmp gfx_init
 

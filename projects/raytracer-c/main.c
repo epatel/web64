@@ -86,7 +86,8 @@ void render(void) {
 
 void main(void) {
     asm("    sei");
-    asm_fx_init();     /* quarter-square tables at $c000 — required */
+    fx_init();         /* quarter-square tables at $c000 — required
+                          (C fixmath.c since Phase 1)               */
 
     /* Fixmath smoke test (seconds, vs minutes for a render):
        uncomment to check, border green = pass, red = fail.

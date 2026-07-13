@@ -35,16 +35,14 @@ statement as v0.1 becomes v0.x.
    fmul, fdiv, fsqrt against exact raw values; toggle block in `main()`
    (border green/red). Render path restored and compiling after.
 
-## Phase 1 — fixmath.c (start here, as suggested)
-Self-contained, has a ready-made self-test, everything else depends on it.
-Order within the phase (each step: compile + self-test):
-1. `fx_init` — two table-build loops → label scaffolds. Easy warm-up.
-2. `umul16` — verbatim single asm block (self-modifying; do not restructure).
-3. `fmul` — sign handling as C byte-global flags where cheap, core in asm.
-4. `fdiv` (saturating) — same treatment.
-5. `isqrt24`, `fsqrt` — loop scaffolds + trampolines (bodies are long).
-Then: point the project at `fixmath.c`, delete the `lib/fixmath.asm` record
-from the build, full-frame golden-image check, commit.
+## Phase 1 — fixmath.c ✅ DONE (2026-07-13)
+All of fx_init, umul16, fmul, udiv24, fdiv, isqrt24, fsqrt ported to
+`fixmath.c` (internal labels prefixed c*). C owns the call graph — fmul
+calls umul16(), fdiv calls udiv24(), fsqrt calls isqrt24() as C calls.
+`lib/fixmath.asm` removed from the project; its zp/table equates moved to
+render.asm, which also carries transition bridges for trace.asm callers
+(`fmul: jmp _fmul`, fdiv, fsqrt — removed in Phase 3). Verified: self-test
+green with the asm lib gone, full-frame golden image identical.
 
 ## Phase 2 — gfx.c
 1. `gfx_init` — genuinely real C: VIC/bank registers via
