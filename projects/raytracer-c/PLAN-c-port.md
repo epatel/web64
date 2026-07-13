@@ -57,26 +57,19 @@ bridges were ever needed. `lib/gfx.asm` removed from the build and the
 `lib/` symlink deleted — the project is now standalone. Verified:
 golden image identical.
 
-## Phase 3 — trace.c (the payoff)
-`trace_pixel` is a long straight-line sequence of fixmath calls, 16-bit
-zp moves, and sign/comparison branches. Conversion strategy:
-- Decompose into parameterless C functions over zp state:
-  `sphere_hit()`, `mirror_bounce()`, `diffuse_light()`, `floor_checker()`,
-  `shadow_test()`, `sky_gradient()` — the call graph and algorithm
-  structure become visible C for the first time.
-- Comparisons/sign tests: asm computes a flag into a byte global
-  (`hit`, `in_shadow`, …), C does `if (flag & 1) { … }` — branching
-  logic reads as C.
-- 16-bit zp moves and fixmath call sequences: small asm blocks between
-  the C calls.
-- `scene.asm` equates: asm blocks reference them by name (shared
-  namespace), so scene.asm can stay. Stretch goal: lift scene constants
-  to C globals (runtime-tweakable scene!) — costs ~1 cycle per access vs
-  immediates, negligible next to fmul, but touches every use site in the
-  converted trace code; do it as its own step with a golden-image check,
-  accepting that derived constants (SPH_C2R, OCY_LY, CC_SH) stay
-  hand-computed either way.
-Golden-image check, commit.
+## Phase 3 — trace.c ✅ DONE (2026-07-13)
+`trace_pixel` decomposed into C functions: ray_setup, sphere_hit_point,
+diffuse_light, mirror_bounce, primary_ray, sky_gradient, floor_sample,
+floor_hit_point, shadow_test, floor_checker, sphere_shade. All branching
+is C ifs on byte-global flags (sph_hit, lit, sky_ray, far_floor,
+shad_ok, in_shadow) set by asm compares; the shadow test's early-outs
+became FLAT sequential guards on shad_ok (no if-nesting needed). All
+fixmath calls are C calls, so the render.asm bridges are gone. The
+.word scratch registers moved to render.asm (v0.1 word globals can't be
+manipulated at runtime). trace.asm symlink deleted; scene.asm stays
+(equates referenced by name from asm blocks). Verified: C calls inside
+if bodies work; golden image identical. Stretch goal (scene constants
+as C globals) not taken — left for later if wanted.
 
 ## Phase 4 — render.asm remnants + cleanup
 - `asm_noise_init` → C scaffold (LFSR shift/carry stays one asm block);

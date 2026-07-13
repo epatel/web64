@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include "fixmath.h"
 #include "gfx.h"
+#include "trace.h"
 #include "selftest.h"
 
 /* Dither mode, read per pixel at runtime. 0 = ordered 4x4 Bayer,
@@ -60,7 +61,8 @@ void render(void) {
     asm("rn_xloop:");
 
     /* marshal px/py into the kernel zero page, trace the pixel */
-    asm("    lda _px\n    sta PX\n    lda _px+1\n    sta PX+1\n    lda _py\n    sta PY\n    jsr trace_pixel");
+    asm("    lda _px\n    sta PX\n    lda _px+1\n    sta PX+1\n    lda _py\n    sta PY");
+    trace_pixel();
 
     /* threshold(x, y) -> DTH: compute Bayer unconditionally, then
        let the mode bits override — flat ifs, no else needed

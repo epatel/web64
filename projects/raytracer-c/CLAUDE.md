@@ -42,9 +42,17 @@ constant defines survive preprocessing (all tested against the compiler).
   umul16/fmul/fdiv/fsqrt into `selftest_ok`; enable via the toggle
   block in `main()` (border green = pass, red = fail). The fast smoke
   test while porting fixmath — seconds instead of a 2.5-minute render.
-- `scene.asm`, `trace.asm` — **symlinks to `../raytracer/`** (source of
-  truth; kernel is byte-identical). The former `lib/` symlink is gone —
-  both libs now live here as C.
+- `trace.c` / `trace.h` — the ray-tracing kernel in C (Phase 3):
+  trace_pixel decomposed into ray_setup / sphere_hit_point /
+  diffuse_light / mirror_bounce / primary_ray / sky_gradient /
+  floor_sample / shadow_test / floor_checker / sphere_shade. Branching
+  is C ifs on byte-global flags set by asm compares (shadow early-outs
+  are flat sequential guards on `shad_ok`); the 8.8 math sequences are
+  asm blocks calling the C fixmath. Scratch .word registers live in
+  render.asm.
+- `scene.asm` — **symlink to `../raytracer/`** (source of truth): scene
+  equates, referenced by name from trace.c's asm blocks. The trace.asm
+  and lib/ symlinks are gone — everything else now lives here as C.
 
 ## Web64 C v0.1 pitfalls hit here (all verified in the IDE)
 - `asm()` takes ONE string literal — adjacent-literal concatenation

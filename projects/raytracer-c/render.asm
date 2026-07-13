@@ -67,14 +67,35 @@ ytab_lo:
 ytab_hi:
         .fill 200, 0
 
-; --- transition bridges: asm callers (trace.asm) -> C fixmath ----
-; Removed in Phase 3 when trace.asm becomes trace.c.
-fmul:
-        jmp _fmul
-fdiv:
-        jmp _fdiv
-fsqrt:
-        jmp _fsqrt
+; --- trace scratch registers (16-bit signed 8.8), used by the
+; trace.c asm blocks (v0.1 C word globals can't be manipulated at
+; runtime, so these stay assembler data) ---------------------------
+DIRX:   .word 0         ; primary ray direction x/y (z = 1)
+DIRY:   .word 0
+AVAL:   .word 0         ; a = D.D
+BHALF:  .word 0         ; b = D.C
+DISCV:  .word 0         ; discriminant
+TVAL:   .word 0         ; sphere hit distance
+HPX:    .word 0         ; hit point P
+HPY:    .word 0
+HPZ:    .word 0
+NRMX:   .word 0         ; normal N
+NRMY:   .word 0
+NRMZ:   .word 0
+REFK:   .word 0         ; 2*(D.N)
+SOX:    .word 0         ; sample-ray origin
+SOY:    .word 0
+SOZ:    .word 0
+SVX:    .word 0         ; sample-ray direction
+SVY:    .word 0
+SVZ:    .word 0
+T2V:    .word 0         ; floor hit distance
+HITX:   .word 0         ; floor hit point x/z
+HITZ:   .word 0
+SMPT:   .word 0         ; sky shade scratch
+OCZ:    .word 0         ; shadow ray: hit z - sphere z
+SB:     .word 0         ; N.L / oc.L accumulator
+SC:     .word 0         ; oc.oc - r^2 accumulator
 
 ; --- asm_noise_init: fill ntab deterministically from _noise_seed
 ; Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same
