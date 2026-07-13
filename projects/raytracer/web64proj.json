@@ -1,0 +1,7 @@
+{
+  "main": "main.asm",
+  "origin": "$4000",
+  "entry": "start",
+  "files": ["scene.asm", "trace.asm", "lib/fixmath.asm", "lib/gfx.asm"],
+  "emulator": {"warpEnabled": true}
+}

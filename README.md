@@ -31,10 +31,20 @@ layout, memory map, and testing notes.
 
 ## Repo layout
 
-- `projects/` — one folder per program (`.asm` sources plus `.web64proj`,
-  `.chr`, `.spr`, or PRG artifacts)
+- `projects/` — one folder per program (sources plus a generated
+  `<name>.web64proj` snapshot, described by `web64proj.json`)
 - `cards/` — reference cards split from the web64 IDE user manual, loaded
   on demand while working
+- `tools/` — `build_web64proj.py` (snapshot generator) and `serve.py`
+  (CORS file server for IDE automation)
 - `docs/` — images and other repo documentation assets
 - `web64-ide-user-manual.html` — local copy of the full IDE manual (source
   of the cards)
+
+## Make targets
+
+- `make proj` — rebuild every `.web64proj` from its sources (deterministic;
+  `make proj-<name>` for one project)
+- `make check` — fail if any committed `.web64proj` is out of sync
+- `make serve` — CORS file server on :8642 for the IDE workflow
+- `make manual` — refresh the local IDE manual copy

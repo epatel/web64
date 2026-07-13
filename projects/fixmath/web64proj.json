@@ -1,0 +1,6 @@
+{
+  "main": "main.asm",
+  "origin": "$4000",
+  "entry": "start",
+  "files": ["lib/fixmath.asm", "lib/gfx.asm"]
+}

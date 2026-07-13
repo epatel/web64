@@ -1,0 +1,27 @@
+{
+  "mainName": "raytracer-c.asm",
+  "mainStub": [
+    "; raytracer-c is 100% C — all code, equates, and data live in the .c",
+    "; modules (main.c, trace.c, fixmath.c, gfx.c, scene.c, selftest.c).",
+    "; The IDE requires a main assembly source; this stub is intentionally",
+    "; empty."
+  ],
+  "origin": "$4000",
+  "entry": "start",
+  "files": [
+    "main.c", "scene.c", "scene.h", "trace.c", "trace.h",
+    "fixmath.c", "fixmath.h", "gfx.c", "gfx.h",
+    "selftest.c", "selftest.h"
+  ],
+  "c": {
+    "enabled": true,
+    "dialect": "web64-c-v0.1",
+    "entry": "main.c",
+    "includePaths": ["include", "assets"],
+    "stdout": "none",
+    "stdin": "none",
+    "runtimeProfile": "tiny",
+    "compilerBackend": "web64-native"
+  },
+  "emulator": {"warpEnabled": true}
+}

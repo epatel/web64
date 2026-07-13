@@ -1,0 +1,6 @@
+{
+  "main": "breakout.asm",
+  "origin": "$0840",
+  "entry": "start",
+  "files": []
+}

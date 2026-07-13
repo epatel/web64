@@ -1,25 +1,11 @@
 {
  "kind": "web64.ide.project",
  "version": 2,
- "savedAt": "2026-07-13T17:33:07.000Z",
  "main": {
   "fileName": "raytracer-c.asm",
   "origin": "$4000",
   "source": "; raytracer-c is 100% C \u2014 all code, equates, and data live in the .c\n; modules (main.c, trace.c, fixmath.c, gfx.c, scene.c, selftest.c).\n; The IDE requires a main assembly source; this stub is intentionally\n; empty.\n",
   "selectedEntryLabel": "start"
- },
- "c": {
-  "enabled": true,
-  "dialect": "web64-c-v0.1",
-  "entry": "main.c",
-  "includePaths": [
-   "include",
-   "assets"
-  ],
-  "stdout": "none",
-  "stdin": "none",
-  "runtimeProfile": "tiny",
-  "compilerBackend": "web64-native"
  },
  "emulator": {
   "emulatorScale": 0,
@@ -101,5 +87,18 @@
    "kind": "source",
    "source": "#ifndef RAYTRACER_C_SELFTEST_H\n#define RAYTRACER_C_SELFTEST_H\n\n#include <stdint.h>\n\n/* Numeric self-test (port of projects/fixmath main.asm fx_selftest,\n   plus a umul16_c check). Sets selftest_ok to 1 on pass, 0 on any\n   failure. Fast smoke test for the fixmath C port \u2014 seconds instead\n   of a full render. Requires fx_init. */\nextern uint8_t selftest_ok;\nvoid fx_selftest(void);\n\n#endif\n"
   }
- ]
+ ],
+ "c": {
+  "enabled": true,
+  "dialect": "web64-c-v0.1",
+  "entry": "main.c",
+  "includePaths": [
+   "include",
+   "assets"
+  ],
+  "stdout": "none",
+  "stdin": "none",
+  "runtimeProfile": "tiny",
+  "compilerBackend": "web64-native"
+ }
 }

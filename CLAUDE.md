@@ -7,6 +7,11 @@ Manual  https://web64.nofs.ai/docs/web64-ide-user-manual.html
 `README.md` has the human-facing overview: project table, IDE workflow, repo layout.
 Keep it in sync when projects are added or renamed.
 
+Each project's `<name>.web64proj` is GENERATED — never edit it by hand. It is built
+from the sources listed in the project's `web64proj.json` manifest: `make proj`
+rebuilds all (deterministic output), `make check` verifies sync, `make serve` starts
+the CORS server for the IDE automation workflow, `make manual` refreshes the manual.
+
 ## Projects
 
 Source code lives under `projects/<name>/`, one folder per web64 project — the `.asm`

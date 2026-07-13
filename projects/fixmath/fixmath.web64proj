@@ -1,7 +1,6 @@
 {
  "kind": "web64.ide.project",
  "version": 2,
- "savedAt": "2026-07-13T17:17:51.000Z",
  "main": {
   "fileName": "main.asm",
   "origin": "$4000",
