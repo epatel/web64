@@ -68,7 +68,9 @@ preprocessing, full libc, broad struct semantics, cc65/ca65 syntax and directive
 - Macros can NOT do this: function-like `#define` is never expanded; object-like
   `#define` expands in expression position only. Include guards work.
 - `asm()` takes ONE string literal — adjacent-literal concatenation (`"a" "b"`) is not
-  performed; fragments leak into the assembly as quoted garbage.
+  performed; fragments leak into the assembly as quoted garbage. Raw newlines INSIDE
+  the literal are accepted (non-ISO, byte-identical to `\n` escapes — clangd will
+  complain, the Web64 compiler won't), so multiline asm blocks are the readable way.
 - `uint16_t` globals: initializers emit a proper `.WORD`, but all runtime operations
   (`=`, `++`) lower low-byte-only with no carry — do 16-bit manipulation in inline asm.
 - Also accepted beyond the documented lists: `CIA1->pra`, `VICII->sprite0_x/…` register

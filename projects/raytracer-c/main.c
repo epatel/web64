@@ -1,15 +1,14 @@
 /* ---------------------------------------------------------------
    RAYTRACER-C — Web64 C v0.1 edition of the raytracer.
 
-   C owns the entry point, the startup sequence, the tuning globals,
-   AND the render loop below. Web64 C v0.1 has no loop statements,
-   arrays, arithmetic, or comparisons, so control flow is scaffolded
-   with inline asm labels/branches around lowered C statements
-   (emission order is linear, so a backward `bne` over C code works
-   — verified). The 8.8 fixed-point kernel (trace_pixel, fixmath,
-   gfx) stays in assembly modules; short asm blocks here marshal
-   C globals into its zero-page interface and do the table lookups
-   the C subset cannot express.
+   Entry point and render loop. The whole program is C modules
+   (main/trace/fixmath/gfx/scene/selftest); Web64 C v0.1 has no
+   loop statements, arrays, arithmetic, or comparisons, so control
+   flow is scaffolded with inline asm labels/branches around
+   lowered C statements (emission order is linear, so a backward
+   `bne` over C code works — verified). asm() takes ONE string
+   literal, but raw newlines inside it are fine — blocks below
+   read as normal assembly listings.
 
    NOT possible instead: a macro utility header. Function-like
    #define is not expanded at all, and object-like #define expands
@@ -17,7 +16,9 @@
    guards and constant defines survive preprocessing.
 
    C globals are exported with underscore labels (_px, _py,
-   _dither_mode); asm_* calls lower to `jsr asm_*` (render.asm).
+   _dither_mode) that asm blocks reference; the remaining
+   assembler-side names (PX, BAYIX, ntab, ...) live in render.asm,
+   the pure equates/data module.
    --------------------------------------------------------------- */
 
 #include <stdint.h>
@@ -52,7 +53,16 @@ uint8_t do_plot = 0;
    table, same dither pattern on every run. The shift/carry loop
    stays one asm block; ntab is data in render.asm. */
 void noise_init(void) {
-    asm("    lda _noise_seed\n    ldx #$00\ncni_loop:\n    lsr\n    bcc cni_skip\n    eor #$b8\ncni_skip:\n    sta ntab,x\n    inx\n    bne cni_loop");
+    asm("    lda _noise_seed
+    ldx #$00
+cni_loop:
+    lsr
+    bcc cni_skip
+    eor #$b8
+cni_skip:
+    sta ntab,x
+    inx
+    bne cni_loop");
 }
 
 /* --- render: for every pixel, trace then dither ----------------
@@ -65,42 +75,110 @@ void render(void) {
     /* px = 0 in asm: like px++, a C assignment to a uint16_t only
        writes the low byte (verified: rows 1+ rendered from x=256
        because _px+1 kept the previous row's exit value) */
-    asm("    lda #0\n    sta _px\n    sta _px+1");
+    asm("    lda #0
+    sta _px
+    sta _px+1");
     asm("rn_xloop:");
 
     /* marshal px/py into the kernel zero page, trace the pixel */
-    asm("    lda _px\n    sta PX\n    lda _px+1\n    sta PX+1\n    lda _py\n    sta PY");
+    asm("    lda _px
+    sta PX
+    lda _px+1
+    sta PX+1
+    lda _py
+    sta PY");
     trace_pixel();
 
     /* threshold(x, y) -> DTH: compute Bayer unconditionally, then
        let the mode bits override — flat ifs, no else needed
        (mode 0 keeps Bayer, 1 overrides with noise, 2 with blue) */
-    asm("    lda _py\n    and #$03\n    asl\n    asl\n    sta BAYIX\n    lda _px\n    and #$03\n    clc\n    adc BAYIX\n    tax\n    lda bayer4,x\n    sta DTH");
+    asm("    lda _py
+    and #$03
+    asl
+    asl
+    sta BAYIX
+    lda _px
+    and #$03
+    clc
+    adc BAYIX
+    tax
+    lda bayer4,x
+    sta DTH");
     if (dither_mode & 1) {
         /* seeded noise: Pearson hash T[T[x] ^ y] & 15 */
-        asm("    lda _px\n    clc\n    adc _px+1\n    tax\n    lda ntab,x\n    eor _py\n    tax\n    lda ntab,x\n    and #$0f\n    sta DTH");
+        asm("    lda _px
+    clc
+    adc _px+1
+    tax
+    lda ntab,x
+    eor _py
+    tax
+    lda ntab,x
+    and #$0f
+    sta DTH");
     }
     if (dither_mode & 2) {
         /* blue noise: bnoise[(y&15)*16 + (x&15)] */
-        asm("    lda _py\n    and #$0f\n    asl\n    asl\n    asl\n    asl\n    sta BAYIX\n    lda _px\n    and #$0f\n    clc\n    adc BAYIX\n    tax\n    lda bnoise,x\n    sta DTH");
+        asm("    lda _py
+    and #$0f
+    asl
+    asl
+    asl
+    asl
+    sta BAYIX
+    lda _px
+    and #$0f
+    clc
+    adc BAYIX
+    tax
+    lda bnoise,x
+    sta DTH");
     }
 
     /* plot if SHADE > DTH — the compare sets _do_plot, C branches */
-    asm("    ldx #$00\n    lda SHADE\n    cmp DTH\n    bcc rn_dark\n    beq rn_dark\n    inx\nrn_dark:\n    stx _do_plot");
+    asm("    ldx #$00
+    lda SHADE
+    cmp DTH
+    bcc rn_dark
+    beq rn_dark
+    inx
+rn_dark:
+    stx _do_plot");
     if (do_plot & 1) {
-        asm("    lda _px\n    sta GPX\n    lda _px+1\n    sta GPX+1\n    lda _py\n    sta GPY");
+        asm("    lda _px
+    sta GPX
+    lda _px+1
+    sta GPX+1
+    lda _py
+    sta GPY");
         gfx_plot();
     }
 
     /* px++ in asm: the v0.1 lowering of a uint16_t increment does
        not carry into the high byte (verified: the x loop wrapped at
        256 and the render hung on scanline 0) */
-    asm("    inc _px\n    bne rn_xinc\n    inc _px+1\nrn_xinc:");
+    asm("    inc _px
+    bne rn_xinc
+    inc _px+1
+rn_xinc:");
     /* while (px < 320) — via jmp trampoline: the C-lowered loop
        body is too long for a direct backward branch (-128..127) */
-    asm("    lda _px+1\n    cmp #>320\n    bcc rn_xcont\n    lda _px\n    cmp #<320\n    bcc rn_xcont\n    jmp rn_xdone\nrn_xcont:\n    jmp rn_xloop\nrn_xdone:");
+    asm("    lda _px+1
+    cmp #>320
+    bcc rn_xcont
+    lda _px
+    cmp #<320
+    bcc rn_xcont
+    jmp rn_xdone
+rn_xcont:
+    jmp rn_xloop
+rn_xdone:");
     py++;
-    asm("    lda _py\n    cmp #200\n    bcs rn_done\n    jmp rn_yloop\nrn_done:");
+    asm("    lda _py
+    cmp #200
+    bcs rn_done
+    jmp rn_yloop
+rn_done:");
 }
 
 void main(void) {
@@ -111,13 +189,17 @@ void main(void) {
     /* Fixmath smoke test (seconds, vs minutes for a render):
        uncomment to check, border green = pass, red = fail.
     fx_selftest();
-    if (selftest_ok & 1) { asm("    lda #$05\n    sta $d020"); }
-    if (!(selftest_ok & 1)) { asm("    lda #$02\n    sta $d020"); }
-    asm("st_halt:\n    jmp st_halt");
+    if (selftest_ok & 1) { asm("    lda #$05
+    sta $d020"); }
+    if (!(selftest_ok & 1)) { asm("    lda #$02
+    sta $d020"); }
+    asm("st_halt:
+    jmp st_halt");
     */
 
     gfx_init();        /* hires bitmap at $2000, cleared (C gfx.c)  */
     noise_init();      /* LFSR noise table from noise_seed          */
     render();          /* C render loop above                       */
-    asm("halt:\n    jmp halt");
+    asm("halt:
+    jmp halt");
 }

@@ -21,22 +21,84 @@ void fx_selftest(void) {
     selftest_ok = 1;
 
     /* umul16 (self-modifying, C module) */
-    asm("    lda #$80\n    sta MULA\n    lda #$02\n    sta MULA+1\n    lda #$00\n    sta MULB\n    lda #$04\n    sta MULB+1");
+    asm("    lda #$80
+    sta MULA
+    lda #$02
+    sta MULA+1
+    lda #$00
+    sta MULB
+    lda #$04
+    sta MULB+1");
     umul16();
-    asm("    lda PROD\n    bne st_f1\n    lda PROD+1\n    bne st_f1\n    lda PROD+2\n    cmp #$0a\n    bne st_f1\n    lda PROD+3\n    beq st_p1\nst_f1:\n    lda #$00\n    sta _selftest_ok\nst_p1:");
+    asm("    lda PROD
+    bne st_f1
+    lda PROD+1
+    bne st_f1
+    lda PROD+2
+    cmp #$0a
+    bne st_f1
+    lda PROD+3
+    beq st_p1
+st_f1:
+    lda #$00
+    sta _selftest_ok
+st_p1:");
 
     /* fmul: 2.5 * 4.0 = 10.0 */
-    asm("    lda #$80\n    sta FXA\n    lda #$02\n    sta FXA+1\n    lda #$00\n    sta FXB\n    lda #$04\n    sta FXB+1");
+    asm("    lda #$80
+    sta FXA
+    lda #$02
+    sta FXA+1
+    lda #$00
+    sta FXB
+    lda #$04
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    bne st_f2\n    lda FXR+1\n    cmp #$0a\n    beq st_p2\nst_f2:\n    lda #$00\n    sta _selftest_ok\nst_p2:");
+    asm("    lda FXR
+    bne st_f2
+    lda FXR+1
+    cmp #$0a
+    beq st_p2
+st_f2:
+    lda #$00
+    sta _selftest_ok
+st_p2:");
 
     /* fdiv: -10.0 / 4.0 = -2.5 */
-    asm("    lda #$00\n    sta FXA\n    lda #$f6\n    sta FXA+1\n    lda #$00\n    sta FXB\n    lda #$04\n    sta FXB+1");
+    asm("    lda #$00
+    sta FXA
+    lda #$f6
+    sta FXA+1
+    lda #$00
+    sta FXB
+    lda #$04
+    sta FXB+1");
     fdiv();
-    asm("    lda FXR\n    cmp #$80\n    bne st_f3\n    lda FXR+1\n    cmp #$fd\n    beq st_p3\nst_f3:\n    lda #$00\n    sta _selftest_ok\nst_p3:");
+    asm("    lda FXR
+    cmp #$80
+    bne st_f3
+    lda FXR+1
+    cmp #$fd
+    beq st_p3
+st_f3:
+    lda #$00
+    sta _selftest_ok
+st_p3:");
 
     /* fsqrt: sqrt(2.25) = 1.5 */
-    asm("    lda #$40\n    sta FXA\n    lda #$02\n    sta FXA+1");
+    asm("    lda #$40
+    sta FXA
+    lda #$02
+    sta FXA+1");
     fsqrt();
-    asm("    lda FXR\n    cmp #$80\n    bne st_f4\n    lda FXR+1\n    cmp #$01\n    beq st_p4\nst_f4:\n    lda #$00\n    sta _selftest_ok\nst_p4:");
+    asm("    lda FXR
+    cmp #$80
+    bne st_f4
+    lda FXR+1
+    cmp #$01
+    beq st_p4
+st_f4:
+    lda #$00
+    sta _selftest_ok
+st_p4:");
 }

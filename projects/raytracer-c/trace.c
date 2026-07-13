@@ -45,93 +45,433 @@ uint8_t difs = 0;      /* diffuse contribution 0-12 */
 void ray_setup(void) {
     sph_hit = 0;
     /* D = (dx, dy, 1): dx = (PX-160)*2 raw, dy = (100-PY)*2 raw */
-    asm("    lda PX\n    sec\n    sbc #160\n    sta DIRX\n    lda PX+1\n    sbc #$00\n    sta DIRX+1\n    asl DIRX\n    rol DIRX+1\n    lda #100\n    sec\n    sbc PY\n    sta DIRY\n    lda #$00\n    sbc #$00\n    sta DIRY+1\n    asl DIRY\n    rol DIRY+1");
+    asm("    lda PX
+    sec
+    sbc #160
+    sta DIRX
+    lda PX+1
+    sbc #$00
+    sta DIRX+1
+    asl DIRX
+    rol DIRX+1
+    lda #100
+    sec
+    sbc PY
+    sta DIRY
+    lda #$00
+    sbc #$00
+    sta DIRY+1
+    asl DIRY
+    rol DIRY+1");
     /* a = dx*dx + dy*dy + 1 */
-    asm("    lda DIRX\n    sta FXA\n    sta FXB\n    lda DIRX+1\n    sta FXA+1\n    sta FXB+1");
+    asm("    lda DIRX
+    sta FXA
+    sta FXB
+    lda DIRX+1
+    sta FXA+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta AVAL\n    lda FXR+1\n    sta AVAL+1\n    lda DIRY\n    sta FXA\n    sta FXB\n    lda DIRY+1\n    sta FXA+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta AVAL
+    lda FXR+1
+    sta AVAL+1
+    lda DIRY
+    sta FXA
+    sta FXB
+    lda DIRY+1
+    sta FXA+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda AVAL\n    adc FXR\n    sta AVAL\n    lda AVAL+1\n    adc FXR+1\n    sta AVAL+1\n    inc AVAL+1");
+    asm("    clc
+    lda AVAL
+    adc FXR
+    sta AVAL
+    lda AVAL+1
+    adc FXR+1
+    sta AVAL+1
+    inc AVAL+1");
     /* b = D.C = dy*cy + cz   (cx = 0, dz = 1) */
-    asm("    lda DIRY\n    sta FXA\n    lda DIRY+1\n    sta FXA+1\n    lda _sph_cy\n    sta FXB\n    lda _sph_cy+1\n    sta FXB+1");
+    asm("    lda DIRY
+    sta FXA
+    lda DIRY+1
+    sta FXA+1
+    lda _sph_cy
+    sta FXB
+    lda _sph_cy+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda FXR\n    adc _sph_cz\n    sta BHALF\n    lda FXR+1\n    adc _sph_cz+1\n    sta BHALF+1");
+    asm("    clc
+    lda FXR
+    adc _sph_cz
+    sta BHALF
+    lda FXR+1
+    adc _sph_cz+1
+    sta BHALF+1");
     /* disc = b*b - a*SPH_C2R ; hit if disc >= 0 */
-    asm("    lda BHALF\n    sta FXA\n    sta FXB\n    lda BHALF+1\n    sta FXA+1\n    sta FXB+1");
+    asm("    lda BHALF
+    sta FXA
+    sta FXB
+    lda BHALF+1
+    sta FXA+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta DISCV\n    lda FXR+1\n    sta DISCV+1\n    lda AVAL\n    sta FXA\n    lda AVAL+1\n    sta FXA+1\n    lda _sph_c2r\n    sta FXB\n    lda _sph_c2r+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta DISCV
+    lda FXR+1
+    sta DISCV+1
+    lda AVAL
+    sta FXA
+    lda AVAL+1
+    sta FXA+1
+    lda _sph_c2r
+    sta FXB
+    lda _sph_c2r+1
+    sta FXB+1");
     fmul();
-    asm("    ldx #$00\n    sec\n    lda DISCV\n    sbc FXR\n    sta DISCV\n    lda DISCV+1\n    sbc FXR+1\n    sta DISCV+1\n    bmi ctp_nohit\n    inx\nctp_nohit:\n    stx _sph_hit");
+    asm("    ldx #$00
+    sec
+    lda DISCV
+    sbc FXR
+    sta DISCV
+    lda DISCV+1
+    sbc FXR+1
+    sta DISCV+1
+    bmi ctp_nohit
+    inx
+ctp_nohit:
+    stx _sph_hit");
 }
 
 /* --- sphere_hit_point: t = (b - sqrt(disc))/a, P = t*D, N = P-C -- */
 void sphere_hit_point(void) {
-    asm("    lda DISCV\n    sta FXA\n    lda DISCV+1\n    sta FXA+1");
+    asm("    lda DISCV
+    sta FXA
+    lda DISCV+1
+    sta FXA+1");
     fsqrt();
-    asm("    sec\n    lda BHALF\n    sbc FXR\n    sta FXA\n    lda BHALF+1\n    sbc FXR+1\n    sta FXA+1\n    lda AVAL\n    sta FXB\n    lda AVAL+1\n    sta FXB+1");
+    asm("    sec
+    lda BHALF
+    sbc FXR
+    sta FXA
+    lda BHALF+1
+    sbc FXR+1
+    sta FXA+1
+    lda AVAL
+    sta FXB
+    lda AVAL+1
+    sta FXB+1");
     fdiv();
     /* hit point P = t*D  (Pz = t because dz = 1) */
-    asm("    lda FXR\n    sta TVAL\n    lda FXR+1\n    sta TVAL+1\n    lda TVAL\n    sta FXA\n    lda TVAL+1\n    sta FXA+1\n    lda DIRX\n    sta FXB\n    lda DIRX+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta TVAL
+    lda FXR+1
+    sta TVAL+1
+    lda TVAL
+    sta FXA
+    lda TVAL+1
+    sta FXA+1
+    lda DIRX
+    sta FXB
+    lda DIRX+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta HPX\n    lda FXR+1\n    sta HPX+1\n    lda TVAL\n    sta FXA\n    lda TVAL+1\n    sta FXA+1\n    lda DIRY\n    sta FXB\n    lda DIRY+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta HPX
+    lda FXR+1
+    sta HPX+1
+    lda TVAL
+    sta FXA
+    lda TVAL+1
+    sta FXA+1
+    lda DIRY
+    sta FXB
+    lda DIRY+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta HPY\n    lda FXR+1\n    sta HPY+1\n    lda TVAL\n    sta HPZ\n    lda TVAL+1\n    sta HPZ+1");
+    asm("    lda FXR
+    sta HPY
+    lda FXR+1
+    sta HPY+1
+    lda TVAL
+    sta HPZ
+    lda TVAL+1
+    sta HPZ+1");
     /* normal N = P - C  (unit length since r = 1) */
-    asm("    lda HPX\n    sta NRMX\n    lda HPX+1\n    sta NRMX+1\n    sec\n    lda HPY\n    sbc _sph_cy\n    sta NRMY\n    lda HPY+1\n    sbc _sph_cy+1\n    sta NRMY+1\n    sec\n    lda HPZ\n    sbc _sph_cz\n    sta NRMZ\n    lda HPZ+1\n    sbc _sph_cz+1\n    sta NRMZ+1");
+    asm("    lda HPX
+    sta NRMX
+    lda HPX+1
+    sta NRMX+1
+    sec
+    lda HPY
+    sbc _sph_cy
+    sta NRMY
+    lda HPY+1
+    sbc _sph_cy+1
+    sta NRMY+1
+    sec
+    lda HPZ
+    sbc _sph_cz
+    sta NRMZ
+    lda HPZ+1
+    sbc _sph_cz+1
+    sta NRMZ+1");
 }
 
 /* --- diffuse_light: difs = 12 * max(0, N.L) ---------------------- */
 void diffuse_light(void) {
     difs = 0;
-    asm("    lda NRMX\n    sta FXA\n    lda NRMX+1\n    sta FXA+1\n    lda _lgt_x\n    sta FXB\n    lda _lgt_x+1\n    sta FXB+1");
+    asm("    lda NRMX
+    sta FXA
+    lda NRMX+1
+    sta FXA+1
+    lda _lgt_x
+    sta FXB
+    lda _lgt_x+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta SB\n    lda FXR+1\n    sta SB+1\n    lda NRMY\n    sta FXA\n    lda NRMY+1\n    sta FXA+1\n    lda _lgt_y\n    sta FXB\n    lda _lgt_y+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta SB
+    lda FXR+1
+    sta SB+1
+    lda NRMY
+    sta FXA
+    lda NRMY+1
+    sta FXA+1
+    lda _lgt_y
+    sta FXB
+    lda _lgt_y+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda SB\n    adc FXR\n    sta SB\n    lda SB+1\n    adc FXR+1\n    sta SB+1\n    lda NRMZ\n    sta FXA\n    lda NRMZ+1\n    sta FXA+1\n    lda _lgt_z\n    sta FXB\n    lda _lgt_z+1\n    sta FXB+1");
+    asm("    clc
+    lda SB
+    adc FXR
+    sta SB
+    lda SB+1
+    adc FXR+1
+    sta SB+1
+    lda NRMZ
+    sta FXA
+    lda NRMZ+1
+    sta FXA+1
+    lda _lgt_z
+    sta FXB
+    lda _lgt_z+1
+    sta FXB+1");
     fmul();
-    asm("    ldx #$00\n    clc\n    lda SB\n    adc FXR\n    sta SB\n    lda SB+1\n    adc FXR+1\n    sta SB+1\n    bmi ctp_dark\n    inx\nctp_dark:\n    stx _lit");
+    asm("    ldx #$00
+    clc
+    lda SB
+    adc FXR
+    sta SB
+    lda SB+1
+    adc FXR+1
+    sta SB+1
+    bmi ctp_dark
+    inx
+ctp_dark:
+    stx _lit");
     if (lit & 1) {
-        asm("    lda SB\n    sta FXA\n    lda SB+1\n    sta FXA+1\n    lda #$00\n    sta FXB\n    lda #$0c\n    sta FXB+1");
+        asm("    lda SB
+    sta FXA
+    lda SB+1
+    sta FXA+1
+    lda #$00
+    sta FXB
+    lda #$0c
+    sta FXB+1");
         fmul();
-        asm("    lda FXR+1\n    sta _difs");
+        asm("    lda FXR+1
+    sta _difs");
     }
 }
 
 /* --- mirror_bounce: R = D - 2(D.N)N from P ----------------------- */
 void mirror_bounce(void) {
     /* k = 2*(D.N) = 2*(dx*Nx + dy*Ny + Nz) */
-    asm("    lda DIRX\n    sta FXA\n    lda DIRX+1\n    sta FXA+1\n    lda NRMX\n    sta FXB\n    lda NRMX+1\n    sta FXB+1");
+    asm("    lda DIRX
+    sta FXA
+    lda DIRX+1
+    sta FXA+1
+    lda NRMX
+    sta FXB
+    lda NRMX+1
+    sta FXB+1");
     fmul();
-    asm("    lda FXR\n    sta REFK\n    lda FXR+1\n    sta REFK+1\n    lda DIRY\n    sta FXA\n    lda DIRY+1\n    sta FXA+1\n    lda NRMY\n    sta FXB\n    lda NRMY+1\n    sta FXB+1");
+    asm("    lda FXR
+    sta REFK
+    lda FXR+1
+    sta REFK+1
+    lda DIRY
+    sta FXA
+    lda DIRY+1
+    sta FXA+1
+    lda NRMY
+    sta FXB
+    lda NRMY+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda REFK\n    adc FXR\n    sta REFK\n    lda REFK+1\n    adc FXR+1\n    sta REFK+1\n    clc\n    lda REFK\n    adc NRMZ\n    sta REFK\n    lda REFK+1\n    adc NRMZ+1\n    sta REFK+1\n    asl REFK\n    rol REFK+1");
+    asm("    clc
+    lda REFK
+    adc FXR
+    sta REFK
+    lda REFK+1
+    adc FXR+1
+    sta REFK+1
+    clc
+    lda REFK
+    adc NRMZ
+    sta REFK
+    lda REFK+1
+    adc NRMZ+1
+    sta REFK+1
+    asl REFK
+    rol REFK+1");
     /* R = D - k*N ; reflected ray starts at P */
-    asm("    lda REFK\n    sta FXA\n    lda REFK+1\n    sta FXA+1\n    lda NRMX\n    sta FXB\n    lda NRMX+1\n    sta FXB+1");
+    asm("    lda REFK
+    sta FXA
+    lda REFK+1
+    sta FXA+1
+    lda NRMX
+    sta FXB
+    lda NRMX+1
+    sta FXB+1");
     fmul();
-    asm("    sec\n    lda DIRX\n    sbc FXR\n    sta SVX\n    lda DIRX+1\n    sbc FXR+1\n    sta SVX+1\n    lda REFK\n    sta FXA\n    lda REFK+1\n    sta FXA+1\n    lda NRMY\n    sta FXB\n    lda NRMY+1\n    sta FXB+1");
+    asm("    sec
+    lda DIRX
+    sbc FXR
+    sta SVX
+    lda DIRX+1
+    sbc FXR+1
+    sta SVX+1
+    lda REFK
+    sta FXA
+    lda REFK+1
+    sta FXA+1
+    lda NRMY
+    sta FXB
+    lda NRMY+1
+    sta FXB+1");
     fmul();
-    asm("    sec\n    lda DIRY\n    sbc FXR\n    sta SVY\n    lda DIRY+1\n    sbc FXR+1\n    sta SVY+1\n    lda REFK\n    sta FXA\n    lda REFK+1\n    sta FXA+1\n    lda NRMZ\n    sta FXB\n    lda NRMZ+1\n    sta FXB+1");
+    asm("    sec
+    lda DIRY
+    sbc FXR
+    sta SVY
+    lda DIRY+1
+    sbc FXR+1
+    sta SVY+1
+    lda REFK
+    sta FXA
+    lda REFK+1
+    sta FXA+1
+    lda NRMZ
+    sta FXB
+    lda NRMZ+1
+    sta FXB+1");
     fmul();
-    asm("    sec\n    lda #$00\n    sbc FXR\n    sta SVZ\n    lda #$01\n    sbc FXR+1\n    sta SVZ+1\n    lda HPX\n    sta SOX\n    lda HPX+1\n    sta SOX+1\n    lda HPY\n    sta SOY\n    lda HPY+1\n    sta SOY+1\n    lda HPZ\n    sta SOZ\n    lda HPZ+1\n    sta SOZ+1");
+    asm("    sec
+    lda #$00
+    sbc FXR
+    sta SVZ
+    lda #$01
+    sbc FXR+1
+    sta SVZ+1
+    lda HPX
+    sta SOX
+    lda HPX+1
+    sta SOX+1
+    lda HPY
+    sta SOY
+    lda HPY+1
+    sta SOY+1
+    lda HPZ
+    sta SOZ
+    lda HPZ+1
+    sta SOZ+1");
 }
 
 /* --- primary_ray: sample along D from the origin (sphere miss) --- */
 void primary_ray(void) {
-    asm("    lda #$00\n    sta SOX\n    sta SOX+1\n    sta SOY\n    sta SOY+1\n    sta SOZ\n    sta SOZ+1\n    lda DIRX\n    sta SVX\n    lda DIRX+1\n    sta SVX+1\n    lda DIRY\n    sta SVY\n    lda DIRY+1\n    sta SVY+1\n    lda #$00\n    sta SVZ\n    lda #$01\n    sta SVZ+1");
+    asm("    lda #$00
+    sta SOX
+    sta SOX+1
+    sta SOY
+    sta SOY+1
+    sta SOZ
+    sta SOZ+1
+    lda DIRX
+    sta SVX
+    lda DIRX+1
+    sta SVX+1
+    lda DIRY
+    sta SVY
+    lda DIRY+1
+    sta SVY+1
+    lda #$00
+    sta SVZ
+    lda #$01
+    sta SVZ+1");
 }
 
 /* --- sky_gradient: SHADE = min(SKY_MAX, 1 + Vy/16) --------------- */
 void sky_gradient(void) {
-    asm("    lda SVY\n    sta SMPT\n    lda SVY+1\n    sta SMPT+1\n    ldx #4\nctp_sky1:\n    lsr SMPT+1\n    ror SMPT\n    dex\n    bne ctp_sky1\n    lda SMPT+1\n    bne ctp_skymax\n    lda SMPT\n    clc\n    adc #$01\n    cmp _sky_max\n    bcc ctp_sky2\n    beq ctp_sky2\nctp_skymax:\n    lda _sky_max\nctp_sky2:\n    sta SHADE");
+    asm("    lda SVY
+    sta SMPT
+    lda SVY+1
+    sta SMPT+1
+    ldx #4
+ctp_sky1:
+    lsr SMPT+1
+    ror SMPT
+    dex
+    bne ctp_sky1
+    lda SMPT+1
+    bne ctp_skymax
+    lda SMPT
+    clc
+    adc #$01
+    cmp _sky_max
+    bcc ctp_sky2
+    beq ctp_sky2
+ctp_skymax:
+    lda _sky_max
+ctp_sky2:
+    sta SHADE");
 }
 
 /* --- floor_hit_point: (HITX, HITZ) = O + t2*V -------------------- */
 void floor_hit_point(void) {
-    asm("    lda T2V\n    sta FXA\n    lda T2V+1\n    sta FXA+1\n    lda SVX\n    sta FXB\n    lda SVX+1\n    sta FXB+1");
+    asm("    lda T2V
+    sta FXA
+    lda T2V+1
+    sta FXA+1
+    lda SVX
+    sta FXB
+    lda SVX+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda SOX\n    adc FXR\n    sta HITX\n    lda SOX+1\n    adc FXR+1\n    sta HITX+1\n    lda T2V\n    sta FXA\n    lda T2V+1\n    sta FXA+1\n    lda SVZ\n    sta FXB\n    lda SVZ+1\n    sta FXB+1");
+    asm("    clc
+    lda SOX
+    adc FXR
+    sta HITX
+    lda SOX+1
+    adc FXR+1
+    sta HITX+1
+    lda T2V
+    sta FXA
+    lda T2V+1
+    sta FXA+1
+    lda SVZ
+    sta FXB
+    lda SVZ+1
+    sta FXB+1");
     fmul();
-    asm("    clc\n    lda SOZ\n    adc FXR\n    sta HITZ\n    lda SOZ+1\n    adc FXR+1\n    sta HITZ+1");
+    asm("    clc
+    lda SOZ
+    adc FXR
+    sta HITZ
+    lda SOZ+1
+    adc FXR+1
+    sta HITZ+1");
 }
 
 /* --- shadow_test: shadow ray from (HITX, -1, HITZ) toward L ------
@@ -143,47 +483,179 @@ void floor_hit_point(void) {
 void shadow_test(void) {
     in_shadow = 0;
     shad_ok = 0;
-    asm("    ldx #$00\n    lda HITX+1\n    bpl ctp_sx1\n    eor #$ff\nctp_sx1:\n    cmp _shadow_max\n    bcs ctp_range\n    lda HITZ+1\n    bpl ctp_sz1\n    eor #$ff\nctp_sz1:\n    cmp _shadow_max\n    bcs ctp_range\n    inx\nctp_range:\n    stx _shad_ok");
+    asm("    ldx #$00
+    lda HITX+1
+    bpl ctp_sx1
+    eor #$ff
+ctp_sx1:
+    cmp _shadow_max
+    bcs ctp_range
+    lda HITZ+1
+    bpl ctp_sz1
+    eor #$ff
+ctp_sz1:
+    cmp _shadow_max
+    bcs ctp_range
+    inx
+ctp_range:
+    stx _shad_ok");
     if (shad_ok & 1) {
         /* oc.L = HITX*Lx + OCZ*Lz + OCY_LY (ocx = HITX, cx = 0);
            keep going only if oc.L < 0 (sphere toward the light) */
-        asm("    sec\n    lda HITZ\n    sbc _sph_cz\n    sta OCZ\n    lda HITZ+1\n    sbc _sph_cz+1\n    sta OCZ+1\n    lda HITX\n    sta FXA\n    lda HITX+1\n    sta FXA+1\n    lda _lgt_x\n    sta FXB\n    lda _lgt_x+1\n    sta FXB+1");
+        asm("    sec
+    lda HITZ
+    sbc _sph_cz
+    sta OCZ
+    lda HITZ+1
+    sbc _sph_cz+1
+    sta OCZ+1
+    lda HITX
+    sta FXA
+    lda HITX+1
+    sta FXA+1
+    lda _lgt_x
+    sta FXB
+    lda _lgt_x+1
+    sta FXB+1");
         fmul();
-        asm("    lda FXR\n    sta SB\n    lda FXR+1\n    sta SB+1\n    lda OCZ\n    sta FXA\n    lda OCZ+1\n    sta FXA+1\n    lda _lgt_z\n    sta FXB\n    lda _lgt_z+1\n    sta FXB+1");
+        asm("    lda FXR
+    sta SB
+    lda FXR+1
+    sta SB+1
+    lda OCZ
+    sta FXA
+    lda OCZ+1
+    sta FXA+1
+    lda _lgt_z
+    sta FXB
+    lda _lgt_z+1
+    sta FXB+1");
         fmul();
-        asm("    ldx #$00\n    clc\n    lda SB\n    adc FXR\n    sta SB\n    lda SB+1\n    adc FXR+1\n    sta SB+1\n    clc\n    lda SB\n    adc _ocy_ly\n    sta SB\n    lda SB+1\n    adc _ocy_ly+1\n    sta SB+1\n    bpl ctp_away\n    inx\nctp_away:\n    stx _shad_ok");
+        asm("    ldx #$00
+    clc
+    lda SB
+    adc FXR
+    sta SB
+    lda SB+1
+    adc FXR+1
+    sta SB+1
+    clc
+    lda SB
+    adc _ocy_ly
+    sta SB
+    lda SB+1
+    adc _ocy_ly+1
+    sta SB+1
+    bpl ctp_away
+    inx
+ctp_away:
+    stx _shad_ok");
     }
     if (shad_ok & 1) {
         /* oc.oc - r^2 = HITX^2 + OCZ^2 + CC_SH ;
            in shadow if (oc.L)^2 - (oc.oc - r^2) >= 0 */
-        asm("    lda HITX\n    sta FXA\n    sta FXB\n    lda HITX+1\n    sta FXA+1\n    sta FXB+1");
+        asm("    lda HITX
+    sta FXA
+    sta FXB
+    lda HITX+1
+    sta FXA+1
+    sta FXB+1");
         fmul();
-        asm("    lda FXR\n    sta SC\n    lda FXR+1\n    sta SC+1\n    lda OCZ\n    sta FXA\n    sta FXB\n    lda OCZ+1\n    sta FXA+1\n    sta FXB+1");
+        asm("    lda FXR
+    sta SC
+    lda FXR+1
+    sta SC+1
+    lda OCZ
+    sta FXA
+    sta FXB
+    lda OCZ+1
+    sta FXA+1
+    sta FXB+1");
         fmul();
-        asm("    clc\n    lda SC\n    adc FXR\n    sta SC\n    lda SC+1\n    adc FXR+1\n    sta SC+1\n    clc\n    lda SC\n    adc _cc_sh\n    sta SC\n    lda SC+1\n    adc _cc_sh+1\n    sta SC+1\n    lda SB\n    sta FXA\n    sta FXB\n    lda SB+1\n    sta FXA+1\n    sta FXB+1");
+        asm("    clc
+    lda SC
+    adc FXR
+    sta SC
+    lda SC+1
+    adc FXR+1
+    sta SC+1
+    clc
+    lda SC
+    adc _cc_sh
+    sta SC
+    lda SC+1
+    adc _cc_sh+1
+    sta SC+1
+    lda SB
+    sta FXA
+    sta FXB
+    lda SB+1
+    sta FXA+1
+    sta FXB+1");
         fmul();
-        asm("    ldx #$00\n    sec\n    lda FXR\n    sbc SC\n    lda FXR+1\n    sbc SC+1\n    bmi ctp_lit2\n    inx\nctp_lit2:\n    stx _in_shadow");
+        asm("    ldx #$00
+    sec
+    lda FXR
+    sbc SC
+    lda FXR+1
+    sbc SC+1
+    bmi ctp_lit2
+    inx
+ctp_lit2:
+    stx _in_shadow");
     }
 }
 
 /* --- floor_checker: tile shade from integer-part parity ---------- */
 void floor_checker(void) {
-    asm("    lda HITX+1\n    eor HITZ+1\n    and #$01\n    bne ctp_chk1\n    lda _shd_chk_lo\n    jmp ctp_chk2\nctp_chk1:\n    lda _shd_chk_hi\nctp_chk2:\n    sta SHADE");
+    asm("    lda HITX+1
+    eor HITZ+1
+    and #$01
+    bne ctp_chk1
+    lda _shd_chk_lo
+    jmp ctp_chk2
+ctp_chk1:
+    lda _shd_chk_hi
+ctp_chk2:
+    sta SHADE");
     if (in_shadow & 1) {
         /* shadowed tile: quarter brightness */
-        asm("    lda SHADE\n    lsr\n    lsr\n    sta SHADE");
+        asm("    lda SHADE
+    lsr
+    lsr
+    sta SHADE");
     }
 }
 
 /* --- floor_sample: t2, then haze / checker + shadow -------------- */
 void floor_sample(void) {
     /* t2 = (floor_y - Oy) / Vy  (numerator and Vy both < 0) */
-    asm("    sec\n    lda _floor_y\n    sbc SOY\n    sta FXA\n    lda _floor_y+1\n    sbc SOY+1\n    sta FXA+1\n    lda SVY\n    sta FXB\n    lda SVY+1\n    sta FXB+1");
+    asm("    sec
+    lda _floor_y
+    sbc SOY
+    sta FXA
+    lda _floor_y+1
+    sbc SOY+1
+    sta FXA+1
+    lda SVY
+    sta FXB
+    lda SVY+1
+    sta FXB+1");
     fdiv();
     /* t2 >= 32 (or fdiv saturated at grazing angles): haze band */
-    asm("    ldx #$00\n    lda FXR\n    sta T2V\n    lda FXR+1\n    sta T2V+1\n    cmp #32\n    bcc ctp_near\n    inx\nctp_near:\n    stx _far_floor");
+    asm("    ldx #$00
+    lda FXR
+    sta T2V
+    lda FXR+1
+    sta T2V+1
+    cmp #32
+    bcc ctp_near
+    inx
+ctp_near:
+    stx _far_floor");
     if (far_floor & 1) {
-        asm("    lda _shd_haze\n    sta SHADE");
+        asm("    lda _shd_haze
+    sta SHADE");
     }
     if (!(far_floor & 1)) {
         floor_hit_point();
@@ -194,7 +666,16 @@ void floor_sample(void) {
 
 /* --- sphere_shade: SHADE = SHADE/2 + difs + 1, clamped to 15 ----- */
 void sphere_shade(void) {
-    asm("    lda SHADE\n    lsr\n    clc\n    adc _difs\n    adc #$01\n    cmp #16\n    bcc ctp_lift\n    lda #15\nctp_lift:\n    sta SHADE");
+    asm("    lda SHADE
+    lsr
+    clc
+    adc _difs
+    adc #$01
+    cmp #16
+    bcc ctp_lift
+    lda #15
+ctp_lift:
+    sta SHADE");
 }
 
 /* --- trace_pixel: (PX, PY) -> SHADE ------------------------------ */
@@ -209,7 +690,12 @@ void trace_pixel(void) {
         primary_ray();
     }
     /* sample floor or sky along (SVX..) from (SOX..) */
-    asm("    ldx #$00\n    lda SVY+1\n    bmi ctp_down\n    inx\nctp_down:\n    stx _sky_ray");
+    asm("    ldx #$00
+    lda SVY+1
+    bmi ctp_down
+    inx
+ctp_down:
+    stx _sky_ray");
     if (sky_ray & 1) {
         sky_gradient();
     }

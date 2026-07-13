@@ -60,7 +60,9 @@ constant defines survive preprocessing (all tested against the compiler).
 ## Web64 C v0.1 pitfalls hit here (all verified in the IDE)
 - `asm()` takes ONE string literal — adjacent-literal concatenation
   (`"a" "b"`) is not performed; fragments leak into the assembly output
-  as quoted garbage. Write each block as a single string with `\n`.
+  as quoted garbage. But RAW NEWLINES inside the literal are accepted
+  (verified byte-identical to `\n` escapes), so blocks are written as
+  multiline strings that read like normal assembly listings.
 - `uint16_t` globals: the initializer emits a proper `.WORD`, but ALL
   runtime operations lower low-byte-only — `px++` doesn't carry into
   `_px+1`, `px = 0` doesn't clear `_px+1`. Do every 16-bit manipulation
@@ -90,10 +92,12 @@ constant defines survive preprocessing (all tested against the compiler).
   PX/PY/SHADE at `$03-$06`, lib owns `$57-$6f` and `$fb-$fe`+`$02`.
 
 ## Editor noise
-Local clangd flags `main.c` (`'c64.h' file not found`, implicit `asm_*`
-declarations, `main` return type). All expected: `c64.h` is a Web64 virtual
-bundled header, and implicit `asm_*` calls are the documented Web64 C
-pattern. Judge the code by the IDE's Diagnostics panel, not clangd.
+Local clangd flags the C files heavily: `'c64.h' file not found` (Web64
+virtual bundled header), `main` return type, and — loudest — "Expected
+string literal in 'asm' / missing terminating '"'" on every multiline
+asm() block (ISO C forbids raw newlines in string literals; Web64 C
+accepts them). All expected. Judge the code by the IDE's Diagnostics
+panel, not clangd.
 
 ## Testing
 Run in the web64 IDE with **warp on**. Deterministic dither: a correct
