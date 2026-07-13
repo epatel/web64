@@ -22,11 +22,11 @@ not a limitation we chose.
 - `lib/` — **symlink to `../fixmath/lib`** (source of truth)
 
 ## How the mixed build works (verified in the IDE 2026-07-13)
-- IDE setup: main source = `render.asm` content; `main.c`, `scene.asm`,
-  `trace.asm`, `lib/fixmath.asm`, `lib/gfx.asm` as virtual files (create
-  `main.c` with the Files panel **New C** button — that auto-enables C and
-  mounts the read-only SDK headers). Origin `$4000`. No `.web64proj`
-  snapshot is saved yet.
+- IDE setup: open `raytracer-c.web64proj` (generated from the repo sources;
+  regenerate after changes — symlinked files are inlined into it, so the
+  repo `.asm`/`.c` files stay the source of truth). Main source =
+  `render.asm`; `main.c`, `scene.asm`, `trace.asm`, `lib/*.asm` are virtual
+  files; the `"c"` block is enabled with entry `main.c`. Origin `$4000`.
 - With C enabled, the build graph assembles EVERY project `.asm` file as a
   module automatically — do **not** `.include` sibling `.asm` files
   (duplicate-symbol diagnostics). One shared symbol namespace: C `main`
