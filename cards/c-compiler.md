@@ -66,7 +66,11 @@ preprocessing, full libc, broad struct semantics, cc65/ca65 syntax and directive
   over lowered C code work. C-lowered bodies are long — loop-back edges often exceed
   the ±128 branch range and need `jmp` trampolines.
 - Macros can NOT do this: function-like `#define` is never expanded; object-like
-  `#define` expands in expression position only. Include guards work.
+  `#define` expands in expression position only. Include guards work. There is also
+  no macro route into asm(): `asm(MACRO)` with a non-literal argument is not
+  recognized as inline assembly at all — it parses as a CALL to a function named
+  `asm` (emits `jsr _asm`, then "Undefined symbol _asm"). The string literal must
+  follow the keyword directly.
 - `asm()` takes ONE string literal — adjacent-literal concatenation (`"a" "b"`) is not
   performed; fragments leak into the assembly as quoted garbage. Raw newlines INSIDE
   the literal are accepted (non-ISO, byte-identical to `\n` escapes — clangd will
