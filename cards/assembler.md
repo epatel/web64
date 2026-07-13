@@ -6,7 +6,9 @@ origin, and compilation behavior.
 Compilation is browser-local; no native assembler is started. The compile result feeds
 diagnostics, the line map, entry label selection, and debugging metadata. The editor has
 a syntax-highlighted background layer over a text area; background compilation is
-debounced, so a large paste is treated as one completed edit.
+debounced, so a large paste is treated as one completed edit. Assembly and Web64 C source
+both compile through the same browser-local build graph — generated C assembly is handed
+to this assembler pipeline (see [c-compiler](c-compiler.md)).
 
 ## Labels and symbols
 

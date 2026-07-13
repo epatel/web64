@@ -4,8 +4,9 @@ What Web64 IDE is, its guiding principles, and how the workspace is laid out.
 
 Web64 IDE (https://web64.nofs.ai/ide/) is a browser-native Commodore 64 development
 environment built around the Web64 VICE port. It combines an assembly editor, a virtual
-project filesystem, a 6502 assembler, graphics asset editors, an embedded C64 runtime,
-live patching, and debugging tools in one web application. It is designed for short
+project filesystem, a 6502 assembler, an experimental C compiler (Web64 C), graphics,
+tile-map, and SID music asset editors, an embedded C64 runtime, live patching, and
+debugging tools in one web application. It is designed for short
 feedback loops: edit source or assets, build a PRG, load it into the embedded emulator,
 run, inspect, repeat — all without leaving the browser.
 
@@ -32,11 +33,15 @@ project state, diagnostics, and debug metadata.
 ## Workspace layout
 
 - Top toolbar: project and build actions (open/save project, load/save source, save PRG,
-  load PRG, start PRG).
-- Left project sidebar: project source, origin/start controls, entry point selection.
-- File tree: virtual project files used by `.include`, `.import`, and `.incbin`.
-- Center workbench: tabbed views — Code, Debugger, Char Editor, Sprite Editor.
-  Tab groups: Workspace (Code, Debugger) and Assets (Char Editor, Sprite Editor).
+  load PRG, start PRG) and Help / Documentation (opens the user manual; also available
+  as Markdown and PDF in `public/docs`).
+- Left project sidebar: project source, origin/start controls, entry point selection,
+  project status, metrics, and symbols.
+- File tree: virtual project files used by `.include`, `.import`, `.incbin`, asset
+  editors, and generated outputs.
+- Center workbench: tabbed views — Code, Debugger, Char Editor, Sprite Editor,
+  Block Editor, Map Editor, SID Tracker, SID Editor. Tab groups: Workspace (Code,
+  Debugger) and Assets (the six asset editors).
 - Embedded emulator panel: the Web64 runtime surface, shown inside the Code tab.
 - Inspector sidebar: compiler diagnostics, line map, byte output, targets, trace
   highlights, and breakpoint toggles.

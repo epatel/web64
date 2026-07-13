@@ -1,12 +1,16 @@
 # generated-includes
 
-Include files auto-generated from charset and sprite assets: the labels they expose and
-how to consume them.
+Include files auto-generated from charset, sprite, block/map, and SID assets: the labels
+they expose and how to consume them.
 
-Graphics assets generate include files, visible in the project tree as generated virtual
-files and previewed in the asset editor. They are meant to be consumed by assembly —
-edit the asset, not the generated include. The label base comes from the asset file name
-(`assets/chars/logo.chr` → `logo`; `assets/sprites/player.spr` → `player`).
+Graphics, tile, and SID assets generate include files, visible in the project tree as
+generated virtual files and previewed in the matching asset editor. They are meant to be
+consumed by assembly — edit the source asset, not the generated include. (Exception: for
+`.w64sid` output, a manual include at the generated path is preserved as an override.)
+The label base comes from the asset file name (`assets/chars/logo.chr` → `logo`;
+`assets/sprites/player.spr` → `player`). Sprite overlay-pair include labels are covered
+in [sprite-editor](sprite-editor.md); block/map includes in [block-editor](block-editor.md)
+and [map-editor](map-editor.md); SID includes in [sid-tracker](sid-tracker.md).
 
 ## Charset include labels
 

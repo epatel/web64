@@ -12,9 +12,15 @@ browser-local project state on any machine.
 - Virtual project files.
 - Binary assets, stored as base64.
 - Generated include files.
-- Graphics asset metadata: mode, dimensions, color slots, include paths, counts.
+- Graphics asset metadata: mode, dimensions, color slots, include paths, overlay-pair
+  descriptors, counts.
+- Tile asset metadata for `.blk`, `.blocks`, `.map`, and `.w64map` block/map assets.
+- SID asset metadata for imported/generated `.sid` files and source-truth `.w64sid`
+  tracker JSON.
+- Generated SID tracker derivatives (`.sid`, `.bin`, `.inc`) when `.w64sid`
+  validation/export succeeds.
 - IDE emulator settings: display scale, audio, SID quality, scanlines, drive 9, gamepad,
-  joystick port, warp, live patch setting.
+  joystick port, swap ports, warp, live patch setting.
 
 ## What a project does NOT store
 
@@ -35,7 +41,9 @@ label, and persisted emulator settings. Current runtime state is cleared from th
 Use the project save button. The IDE writes the `.web64proj` through the browser file
 picker when available, otherwise it downloads the file. Before saving, the IDE flushes
 pending character and sprite draft edits into the virtual filesystem, so the saved project
-contains the bytes currently visible in the asset editors, not stale bytes.
+contains the bytes currently visible in the asset editors, not stale bytes. Block sets,
+maps, and `.w64sid` tracker files maintain draft state with derived output records —
+save those explicitly in their editors before saving the project.
 
 ## Saving source and PRG files separately
 
