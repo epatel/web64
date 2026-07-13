@@ -46,5 +46,9 @@ layout, memory map, and testing notes.
 - `make proj` — rebuild every `.web64proj` from its sources (deterministic;
   `make proj-<name>` for one project)
 - `make check` — fail if any committed `.web64proj` is out of sync
+- `make test` — run every demo in the real web64 IDE (headless Chromium via
+  Playwright, bootstrapped into `.venv` on first run) and verify the C64
+  screen output; `make test-<name>` for one demo. The raytracer demos
+  render a full frame — expect several minutes.
 - `make serve` — CORS file server on :8642 for the IDE workflow
 - `make manual` — refresh the local IDE manual copy

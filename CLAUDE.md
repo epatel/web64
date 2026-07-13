@@ -9,8 +9,10 @@ Keep it in sync when projects are added or renamed.
 
 Each project's `<name>.web64proj` is GENERATED — never edit it by hand. It is built
 from the sources listed in the project's `web64proj.json` manifest: `make proj`
-rebuilds all (deterministic output), `make check` verifies sync, `make serve` starts
-the CORS server for the IDE automation workflow, `make manual` refreshes the manual.
+rebuilds all (deterministic output), `make check` verifies sync, `make test` runs the
+demos in a headless browser against the real IDE and checks the C64 screen (border
+color, dither regions, animation — see tools/run_demos.py), `make serve` starts the
+CORS server for the IDE automation workflow, `make manual` refreshes the manual.
 
 ## Projects
 

@@ -1,9 +1,28 @@
 # web64 — C64 projects. There is no local assembler (the web64 IDE
 # builds in the browser); these targets manage the repo artifacts.
 
-.PHONY: all proj check serve manual help
+.PHONY: all proj check serve manual test help
 
 all: proj
+
+VENV := .venv
+VENV_OK := $(VENV)/.deps-installed
+
+$(VENV_OK):
+	python3 -m venv $(VENV)
+	$(VENV)/bin/pip install --quiet playwright pillow
+	$(VENV)/bin/playwright install chromium
+	touch $@
+
+## test: run all demos in the web64 IDE (headless Chromium) and check
+##       the C64 screen output; test-<name> for one demo. First run
+##       bootstraps .venv with playwright + chromium. Raytracer demos
+##       render a full frame — expect several minutes.
+test: $(VENV_OK)
+	$(VENV)/bin/python tools/run_demos.py
+
+test-%: $(VENV_OK)
+	$(VENV)/bin/python tools/run_demos.py $*
 
 ## proj: rebuild every projects/*/<name>.web64proj from its sources
 ##       (deterministic output — no diff when sources are unchanged)
