@@ -22,11 +22,15 @@ constant defines survive preprocessing (all tested against the compiler).
   branches. Owns the tuning globals `dither_mode` (0 Bayer / 1 white noise
   / 2 blue noise) and `noise_seed`, read at RUNTIME — changing dither mode
   needs no reassembly of the kernel.
-- `render.asm` — pure data module, NO code (since Phase 4): zero-page
-  equates (PX/PY/SHADE, fixmath registers, GPTR/GPX/GPY), the 16-bit
-  trace scratch registers, and the data tables (bayer4, ntab, bnoise,
-  gfx_bits, ytab). Everything executable is C; this file holds what
-  v0.1 fundamentally cannot (zp, runtime 16-bit ops, arrays).
+- There is NO assembly file at all. Equates and data live inside the C
+  modules: assembler directives pass through `asm()` verbatim, so
+  zero-page equates ride in init functions (fx_init, gfx_init — they
+  emit no bytes) and tables/scratch registers sit in NEVER-CALLED data
+  functions (`trace_regs`, `gfx_tables`, `dither_tables` — one
+  unreachable rts byte each). File-scope `asm()` is silently ignored;
+  a function wrapper is required. The `.web64proj` main source is a
+  comment-only stub (`raytracer-c.asm`, exists only inside the
+  snapshot — the IDE requires a main assembly source).
 - `fixmath.c` / `fixmath.h` — the fixmath library in C (Phase 1 of
   PLAN-c-port.md complete): fx_init, umul16 (self-modifying, verbatim),
   fmul, udiv24, fdiv, isqrt24, fsqrt. Same zero-page interface (equates

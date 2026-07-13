@@ -23,7 +23,7 @@ file layout, memory map, conventions, and testing notes — read it before worki
 - `projects/raytracer-c/` — same image, fully ported to Web64 C v0.1: all executable
   code is C (main/trace/fixmath/gfx/scene as C modules; arithmetic in inline-asm
   blocks, branching as C ifs on asm-set flags); scene constants are runtime C
-  globals; only one data/equates .asm remains. Standalone — no symlinks.
+  globals; no assembly files at all — equates and data live in asm() blocks. Standalone.
 
 ## Cards
 

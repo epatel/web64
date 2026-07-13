@@ -41,6 +41,46 @@ uint8_t shad_ok = 0;   /* shadow test may proceed / sphere toward light */
 uint8_t in_shadow = 0; /* 1 = floor hit point is in shadow */
 uint8_t difs = 0;      /* diffuse contribution 0-12 */
 
+/* --- kernel zero page + 16-bit scratch registers -----------------
+   NEVER CALLED: the asm block holds equates (no bytes emitted) and
+   .word data — v0.1 C has no arrays and its word globals allow no
+   runtime 16-bit ops. Labels are global, so every module sees them.
+   (File-scope asm() is silently ignored; a function is required.) */
+void trace_regs(void) {
+    asm("
+PX      = $03           ; 2 bytes  current pixel x (0-319)
+PY      = $05           ; 1 byte   current pixel y (0-199)
+SHADE   = $06           ; 1 byte   pixel brightness 0-15
+
+    DIRX:   .word 0         ; primary ray direction x/y (z = 1)
+    DIRY:   .word 0
+    AVAL:   .word 0         ; a = D.D
+    BHALF:  .word 0         ; b = D.C
+    DISCV:  .word 0         ; discriminant
+    TVAL:   .word 0         ; sphere hit distance
+    HPX:    .word 0         ; hit point P
+    HPY:    .word 0
+    HPZ:    .word 0
+    NRMX:   .word 0         ; normal N
+    NRMY:   .word 0
+    NRMZ:   .word 0
+    REFK:   .word 0         ; 2*(D.N)
+    SOX:    .word 0         ; sample-ray origin
+    SOY:    .word 0
+    SOZ:    .word 0
+    SVX:    .word 0         ; sample-ray direction
+    SVY:    .word 0
+    SVZ:    .word 0
+    T2V:    .word 0         ; floor hit distance
+    HITX:   .word 0         ; floor hit point x/z
+    HITZ:   .word 0
+    SMPT:   .word 0         ; sky shade scratch
+    OCZ:    .word 0         ; shadow ray: hit z - sphere z
+    SB:     .word 0         ; N.L / oc.L accumulator
+    SC:     .word 0         ; oc.oc - r^2 accumulator
+    ");
+}
+
 /* --- ray_setup: D, a = D.D, b = D.C, disc; sets sph_hit ---------- */
 void ray_setup(void) {
     sph_hit = 0;

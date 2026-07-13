@@ -76,6 +76,11 @@ preprocessing, full libc, broad struct semantics, cc65/ca65 syntax and directive
 - Also accepted beyond the documented lists: `CIA1->pra`, `VICII->sprite0_x/…` register
   fields, struct member `++`/`--`, global-to-global assignment, and
   `.incbin label, "path"` in the assembler (labels the bytes like `.import binary`).
+- Assembler directives pass through `asm()` verbatim: equates (`PX = $03`) and data
+  (`.byte`/`.word`/`.fill`) work inside function-scope asm blocks — equates emit no
+  bytes (put them in an init function), data goes in a never-called function (one
+  unreachable rts). File-scope `asm()` is silently ignored — no error, no emission.
+  This lets a project be 100% .c files (plus the required comment-only main source).
 
 ## Include resolution
 

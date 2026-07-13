@@ -19,6 +19,12 @@
    ytab[y] = GFXBMP + (y/8)*320 + (y&7). */
 void gfx_init(void) {
     asm("
+; gfx zero page (equates emit no code; global to all modules)
+GPTR    = $fb           ; 2 bytes  plot address pointer
+GPX     = $fd           ; 2 bytes  plot x (0-319)
+GPY     = $02           ; 1 byte   plot y (0-199)
+GFXBMP  = $2000
+
         lda $dd00
         ora #$03
         sta $dd00
@@ -119,5 +125,20 @@ void gfx_plot(void) {
         lda (GPTR),y
         ora gfx_bits,x
         sta (GPTR),y
+    ");
+}
+
+
+/* --- bit masks and y-address tables ------------------------------
+   NEVER CALLED: data the C subset cannot hold (no arrays); ytab is
+   filled at runtime by gfx_init. */
+void gfx_tables(void) {
+    asm("
+    gfx_bits:
+        .byte $80, $40, $20, $10, $08, $04, $02, $01
+    ytab_lo:
+        .fill 200, 0
+    ytab_hi:
+        .fill 200, 0
     ");
 }

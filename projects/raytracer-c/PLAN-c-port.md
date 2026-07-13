@@ -90,9 +90,16 @@ statement-by-statement; the structure is already in place.
 Follow-up ✅ DONE (2026-07-13): scene constants lifted to C globals
 (scene.c/scene.h, scene.asm symlink removed) — trace.c's asm blocks
 load them from memory at runtime, so the scene is tweakable without
-reassembling the kernel. Golden image identical. The project is fully
-standalone: no symlinks, no asm sources except the render.asm data
-module.
+reassembling the kernel. Golden image identical.
+
+Follow-up ✅ DONE (2026-07-13): render.asm dissolved into the C
+modules — assembler directives pass through asm() verbatim, so zp
+equates live in init-function asm blocks (no bytes) and data lives in
+never-called data functions (trace_regs, gfx_tables, dither_tables;
++1 unreachable rts each). File-scope asm() is silently ignored — a
+function wrapper is required. The project has ZERO assembly files;
+the .web64proj main source is a comment-only stub. Golden image
+identical (3686 bytes, +3 rts vs the render.asm version).
 
 ## Risks / open questions
 - Multi-module C build and C→C cross-file calls: unverified (Phase 0.1).

@@ -28,6 +28,29 @@
    Uses SQN/SQROOT as pointers and REM/DVS as accumulator/delta. */
 void fx_init(void) {
     asm("
+; fixmath zero-page register file + quarter-square table addresses
+; (equates emit no code; global to all modules)
+SQR1LO  = $c000         ; quarter-square tables, 512 bytes each
+SQR1HI  = $c200
+SQR2LO  = $c400
+SQR2HI  = $c600
+MULA    = $57           ; 2 bytes  multiplier
+MULB    = $59           ; 2 bytes  multiplicand (destroyed)
+PROD    = $5b           ; 4 bytes  product
+DVD     = $5f           ; 3 bytes  dividend / quotient
+DVS     = $62           ; 2 bytes  divisor
+REM     = $64           ; 2 bytes  remainder
+SQN     = $66           ; 3 bytes  sqrt input (destroyed)
+SQROOT  = $69           ; 2 bytes  sqrt result
+SQREM   = $6b           ; 2 bytes  sqrt scratch
+SGN     = $6d           ; 1 byte   sign scratch
+FXR     = $6e           ; 2 bytes  fixed-point result
+FXA     = MULA          ; fixed-point operand aliases
+FXB     = MULB
+UT1     = DVD           ; umul16 temps (overlay divide registers)
+UT2     = DVS
+UT3     = DVD+2
+
         lda #<SQR1LO
         sta SQN
         lda #>SQR1LO
