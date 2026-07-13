@@ -11,7 +11,7 @@
 ; ---------------------------------------------------------------
 * = $4000
 
-start:
+    start:
         sei
         jsr fx_init     ; build multiply tables (required by fixmath)
         jsr gfx_init
@@ -19,11 +19,11 @@ start:
         jsr draw_fan
         jsr draw_circle
         jsr fx_selftest
-forever:
+    forever:
         jmp forever
 
 ; --- frame: rectangle along the screen edges --------------------
-draw_frame:
+    draw_frame:
         lda #$00        ; start corner (0,0)
         sta GX0
         sta GX0+1
@@ -48,7 +48,7 @@ draw_frame:
         rts
 
 ; --- fan: lines from center to points along all four edges ------
-fan_line:               ; line from (160,100) to (GX1,GY1)
+    fan_line:               ; line from (160,100) to (GX1,GY1)
         lda #160
         sta GX0
         lda #$00
@@ -57,11 +57,11 @@ fan_line:               ; line from (160,100) to (GX1,GY1)
         sta GY0
         jmp gfx_line
 
-draw_fan:
+    draw_fan:
         lda #$00        ; top/bottom edges, x = 0,16,...,304
         sta FANX
         sta FANX+1
-df_xloop:
+    df_xloop:
         lda FANX
         sta GX1
         lda FANX+1
@@ -86,7 +86,7 @@ df_xloop:
         bcc df_xloop
         lda #$00        ; left/right edges, y = 0,20,...,180
         sta FANY
-df_yloop:
+    df_yloop:
         lda #$00
         sta GX1
         sta GX1+1
@@ -107,7 +107,7 @@ df_yloop:
         rts
 
 ; --- circles: gfx_circle (midpoint), r=90 and r=45 --------------
-draw_circle:
+    draw_circle:
         lda #160
         sta GCX
         lda #$00
@@ -122,7 +122,7 @@ draw_circle:
         jmp gfx_circle
 
 ; --- numeric self-test: known exact results ---------------------
-fx_selftest:
+    fx_selftest:
         lda #$80        ; 2.5 * 4.0 = 10.0 ($0280 * $0400 = $0a00)
         sta FXA
         lda #$02
@@ -166,14 +166,14 @@ fx_selftest:
         lda #$05        ; green border: all passed
         sta $d020
         rts
-st_fail:
+    st_fail:
         lda #$02        ; red border: a test failed
         sta $d020
         rts
 
 ; --- demo variables ---------------------------------------------
-FANX:   .word 0
-FANY:   .byte 0
+    FANX:   .word 0
+    FANY:   .byte 0
 
 ; --- library ----------------------------------------------------
         .include "lib/fixmath.asm"

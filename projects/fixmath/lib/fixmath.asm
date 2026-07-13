@@ -49,7 +49,7 @@ FXB     = MULB
 ; f(n) = floor(n*n/4), built incrementally: f(n+1) = f(n) +
 ; floor((n+1)/2). SQR2[i] = f(|i-255|) is copied from SQR1.
 ; Uses SQN/SQROOT as pointers and REM/DVS as accumulator/delta.
-fx_init:
+    fx_init:
         lda #<SQR1LO
         sta SQN
         lda #>SQR1LO
@@ -64,7 +64,7 @@ fx_init:
         sta DVS         ; delta = floor((i+1)/2)
         tay
         ldx #$02        ; 2 pages per table
-fxi_loop:
+    fxi_loop:
         lda REM
         sta (SQN),y
         lda REM+1
@@ -73,7 +73,7 @@ fxi_loop:
         and #$01        ; on odd i the delta steps up
         beq fxi_add
         inc DVS
-fxi_add:
+    fxi_add:
         clc
         lda REM
         adc DVS
@@ -90,7 +90,7 @@ fxi_add:
         ; SQR2[i] = f(255-i) for i = 0..255
         ldx #$00
         ldy #$ff
-fxi_c1:
+    fxi_c1:
         lda SQR1LO,y
         sta SQR2LO,x
         lda SQR1HI,y
@@ -99,7 +99,7 @@ fxi_c1:
         inx
         bne fxi_c1
         ; SQR2[256+k] = f(k+1) for k = 0..255
-fxi_c2:
+    fxi_c2:
         lda SQR1LO+1,x
         sta SQR2LO+$100,x
         lda SQR1HI+1,x
@@ -117,7 +117,7 @@ fxi_c2:
 UT1     = DVD           ; 2 bytes  mid partial P1 = AL*BH
 UT2     = DVS           ; 2 bytes  mid partial P2 = AH*BL
 UT3     = DVD+2         ; 1 byte   mid-sum carry
-umul16:
+    umul16:
         lda MULA        ; patch AL into the four AL-partials
         sta ua1+1
         sta ua2+1
@@ -140,33 +140,33 @@ umul16:
         sta ub8+1
         ldy MULB
         sec             ; P0 = AL*BL -> PROD+0/+1
-ua1:    lda SQR1LO,y
-ua3:    sbc SQR2LO,y
+    ua1:    lda SQR1LO,y
+    ua3:    sbc SQR2LO,y
         sta PROD
-ua2:    lda SQR1HI,y
-ua4:    sbc SQR2HI,y
+    ua2:    lda SQR1HI,y
+    ua4:    sbc SQR2HI,y
         sta PROD+1
         sec             ; P2 = AH*BL -> UT2
-ub1:    lda SQR1LO,y
-ub3:    sbc SQR2LO,y
+    ub1:    lda SQR1LO,y
+    ub3:    sbc SQR2LO,y
         sta UT2
-ub2:    lda SQR1HI,y
-ub4:    sbc SQR2HI,y
+    ub2:    lda SQR1HI,y
+    ub4:    sbc SQR2HI,y
         sta UT2+1
         ldy MULB+1
         sec             ; P1 = AL*BH -> UT1
-ua5:    lda SQR1LO,y
-ua7:    sbc SQR2LO,y
+    ua5:    lda SQR1LO,y
+    ua7:    sbc SQR2LO,y
         sta UT1
-ua6:    lda SQR1HI,y
-ua8:    sbc SQR2HI,y
+    ua6:    lda SQR1HI,y
+    ua8:    sbc SQR2HI,y
         sta UT1+1
         sec             ; P3 = AH*BH -> PROD+2/+3
-ub5:    lda SQR1LO,y
-ub7:    sbc SQR2LO,y
+    ub5:    lda SQR1LO,y
+    ub7:    sbc SQR2LO,y
         sta PROD+2
-ub6:    lda SQR1HI,y
-ub8:    sbc SQR2HI,y
+    ub6:    lda SQR1HI,y
+    ub8:    sbc SQR2HI,y
         sta PROD+3
         ; PROD += (P1 + P2) << 8
         clc
@@ -192,7 +192,7 @@ ub8:    sbc SQR2HI,y
         rts
 
 ; --- fmul: FXR = FXA * FXB (signed 8.8) -------------------------
-fmul:
+    fmul:
         lda FXA+1
         eor FXB+1
         sta SGN         ; bit 7 = result sign
@@ -205,7 +205,7 @@ fmul:
         lda #$00
         sbc FXA+1
         sta FXA+1
-fm_apos:
+    fm_apos:
         lda FXB+1
         bpl fm_bpos
         sec
@@ -215,7 +215,7 @@ fm_apos:
         lda #$00
         sbc FXB+1
         sta FXB+1
-fm_bpos:
+    fm_bpos:
         jsr umul16
         lda PROD+1      ; product >> 8 = 8.8 result
         sta FXR
@@ -230,16 +230,16 @@ fm_bpos:
         lda #$00
         sbc FXR+1
         sta FXR+1
-fm_done:
+    fm_done:
         rts
 
 ; --- udiv24: DVD(24u) / DVS(16u) -> quotient DVD, remainder REM -
-udiv24:
+    udiv24:
         lda #$00
         sta REM
         sta REM+1
         ldx #24
-udloop:
+    udloop:
         asl DVD
         rol DVD+1
         rol DVD+2
@@ -253,7 +253,7 @@ udloop:
         lda REM
         cmp DVS
         bcc udnext
-udforce:
+    udforce:
         lda REM
         sec
         sbc DVS
@@ -262,14 +262,14 @@ udforce:
         sbc DVS+1
         sta REM+1
         inc DVD         ; set quotient bit
-udnext:
+    udnext:
         dex
         bne udloop
         rts
 
 ; --- fdiv: FXR = FXA / FXB (signed 8.8) -------------------------
 ; Computes (|a| << 8) / |b|, then applies the sign.
-fdiv:
+    fdiv:
         lda FXA+1
         eor FXB+1
         sta SGN
@@ -287,7 +287,7 @@ fdiv:
         lda #$00
         sbc DVD+2
         sta DVD+2
-fd_apos:
+    fd_apos:
         lda FXB
         sta DVS
         lda FXB+1
@@ -300,7 +300,7 @@ fd_apos:
         lda #$00
         sbc DVS+1
         sta DVS+1
-fd_bpos:
+    fd_bpos:
         jsr udiv24
         lda DVD+2
         beq fd_ok
@@ -309,12 +309,12 @@ fd_bpos:
         lda #$7f
         sta FXR+1
         jmp fd_sign
-fd_ok:
+    fd_ok:
         lda DVD
         sta FXR
         lda DVD+1
         sta FXR+1
-fd_sign:
+    fd_sign:
         bit SGN
         bpl fd_done
         sec
@@ -324,19 +324,19 @@ fd_sign:
         lda #$00
         sbc FXR+1
         sta FXR+1
-fd_done:
+    fd_done:
         rts
 
 ; --- isqrt24: SQROOT = floor(sqrt(SQN)), SQN is 24-bit unsigned -
 ; Binary digit-by-digit method, 12 iterations. Clobbers DVD (scratch).
-isqrt24:
+    isqrt24:
         lda #$00
         sta SQROOT
         sta SQROOT+1
         sta SQREM
         sta SQREM+1
         ldx #12
-isqloop:
+    isqloop:
         asl SQN         ; rem = rem*4 + top two bits of SQN
         rol SQN+1
         rol SQN+2
@@ -363,7 +363,7 @@ isqloop:
         lda SQREM
         cmp DVD
         bcc isqnext
-isqsub:
+    isqsub:
         lda SQREM
         sec
         sbc DVD
@@ -372,14 +372,14 @@ isqsub:
         sbc DVD+1
         sta SQREM+1
         inc SQROOT
-isqnext:
+    isqnext:
         dex
         bne isqloop
         rts
 
 ; --- fsqrt: FXR = sqrt(FXA), FXA is 8.8 and must be >= 0 --------
 ; sqrt(raw * 256) is exactly the 8.8 raw result.
-fsqrt:
+    fsqrt:
         lda #$00
         sta SQN
         lda FXA

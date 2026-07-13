@@ -26,7 +26,7 @@ GPY     = $02           ; 1 byte   plot y (0-199)
 GFXBMP  = $2000
 
 ; --- gfx_init ---------------------------------------------------
-gfx_init:
+    gfx_init:
         lda $dd00       ; VIC bank 0 ($0000-$3fff)
         ora #$03
         sta $dd00
@@ -44,7 +44,7 @@ gfx_init:
         lda #>GFXBMP
         sta GPTR+1
         ldx #$00
-gi_ytab:
+    gi_ytab:
         txa
         and #$07
         clc
@@ -64,14 +64,14 @@ gi_ytab:
         lda GPTR+1
         adc #>320
         sta GPTR+1
-gi_next:
+    gi_next:
         inx
         cpx #200
         bne gi_ytab
         rts
 
 ; --- gfx_clear --------------------------------------------------
-gfx_clear:
+    gfx_clear:
         lda #<GFXBMP
         sta GPTR
         lda #>GFXBMP
@@ -79,7 +79,7 @@ gfx_clear:
         lda #$00
         tay
         ldx #31         ; 31 pages + 64 bytes = 8000
-gc_page:
+    gc_page:
         sta (GPTR),y
         iny
         bne gc_page
@@ -87,13 +87,13 @@ gc_page:
         dex
         bne gc_page
         ldy #$3f
-gc_tail:
+    gc_tail:
         sta (GPTR),y
         dey
         bpl gc_tail
         lda #$10        ; color byte: white pixels on black
         ldx #$00
-gc_col:
+    gc_col:
         sta $0400,x
         sta $0500,x
         sta $0600,x
@@ -103,7 +103,7 @@ gc_col:
         rts
 
 ; --- gfx_plot: set pixel (GPX, GPY) -----------------------------
-gfx_plot:
+    gfx_plot:
         ldx GPY
         lda ytab_lo,x
         sta GPTR
@@ -127,7 +127,7 @@ gfx_plot:
         rts
 
 ; --- gfx_circle: midpoint circle, center (GCX,GCY), radius GCR --
-gfx_circle:
+    gfx_circle:
         lda #$00
         sta CIRX
         lda GCR
@@ -139,7 +139,7 @@ gfx_circle:
         lda #$00
         sbc #$00
         sta CIRD+1
-cr_loop:
+    cr_loop:
         lda CIRX        ; plot 8 mirrored points
         sta CPA
         lda CIRY
@@ -177,7 +177,7 @@ cr_loop:
         sta CIRD+1
         dec CIRY
         jmp cr_next
-cr_dneg:
+    cr_dneg:
         lda CIRX        ; d += 2*x + 3
         asl
         clc
@@ -188,16 +188,16 @@ cr_dneg:
         lda CIRD+1
         adc #$00
         sta CIRD+1
-cr_next:
+    cr_next:
         inc CIRX
         lda CIRY
         cmp CIRX        ; while x <= y
         bcc cr_done
         jmp cr_loop
-cr_done:
+    cr_done:
         rts
 
-cr_plot4:               ; plot (GCX +/- CPA, GCY +/- CPB)
+    cr_plot4:               ; plot (GCX +/- CPA, GCY +/- CPB)
         lda GCX
         clc
         adc CPA
@@ -231,7 +231,7 @@ cr_plot4:               ; plot (GCX +/- CPA, GCY +/- CPB)
         rts
 
 ; --- gfx_line: Bresenham (GX0,GY0)-(GX1,GY1) --------------------
-gfx_line:
+    gfx_line:
         lda #$01        ; dx = abs(x1-x0), LSX = x step
         sta LSX
         sec
@@ -251,7 +251,7 @@ gfx_line:
         lda #$00
         sbc LDXV+1
         sta LDXV+1
-ln_dxdone:
+    ln_dxdone:
         lda #$01        ; LDYV = -abs(y1-y0), LSY = y step
         sta LSY
         sec
@@ -263,7 +263,7 @@ ln_dxdone:
         adc #$01
         ldy #$ff
         sty LSY
-ln_dypos:
+    ln_dypos:
         sta LTMP
         sec
         lda #$00
@@ -279,7 +279,7 @@ ln_dypos:
         lda LDXV+1
         adc LDYV+1
         sta LERR+1
-ln_loop:
+    ln_loop:
         lda GX0
         sta GPX
         lda GX0+1
@@ -297,7 +297,7 @@ ln_loop:
         cmp GY1
         bne ln_step
         rts
-ln_step:
+    ln_step:
         lda LERR        ; e2 = 2*err
         asl
         sta LE2
@@ -310,7 +310,7 @@ ln_step:
         sbc LDYV+1
         bvc ln_c1
         eor #$80
-ln_c1:
+    ln_c1:
         bmi ln_nox
         clc
         lda LERR
@@ -323,21 +323,21 @@ ln_c1:
         lda LSX
         bpl ln_sxext
         dey
-ln_sxext:
+    ln_sxext:
         clc
         adc GX0
         sta GX0
         tya
         adc GX0+1
         sta GX0+1
-ln_nox:
+    ln_nox:
         lda LDXV        ; if e2 <= dx (signed): err += dx, y += sy
         cmp LE2
         lda LDXV+1
         sbc LE2+1
         bvc ln_c2
         eor #$80
-ln_c2:
+    ln_c2:
         bmi ln_noy
         clc
         lda LERR
@@ -350,35 +350,35 @@ ln_c2:
         clc
         adc LSY
         sta GY0
-ln_noy:
+    ln_noy:
         jmp ln_loop
 
 ; --- gfx data ---------------------------------------------------
-gfx_bits:
+    gfx_bits:
         .byte $80, $40, $20, $10, $08, $04, $02, $01
 
-GX0:    .word 0
-GY0:    .byte 0
-GX1:    .word 0
-GY1:    .byte 0
-LDXV:   .word 0
-LDYV:   .word 0
-LERR:   .word 0
-LE2:    .word 0
-LSX:    .byte 0
-LSY:    .byte 0
-LTMP:   .byte 0
-GCX:    .word 0
-GCY:    .byte 0
-GCR:    .byte 0
-CIRX:   .byte 0
-CIRY:   .byte 0
-CIRD:   .word 0
-CTMP:   .word 0
-CPA:    .byte 0
-CPB:    .byte 0
+    GX0:    .word 0
+    GY0:    .byte 0
+    GX1:    .word 0
+    GY1:    .byte 0
+    LDXV:   .word 0
+    LDYV:   .word 0
+    LERR:   .word 0
+    LE2:    .word 0
+    LSX:    .byte 0
+    LSY:    .byte 0
+    LTMP:   .byte 0
+    GCX:    .word 0
+    GCY:    .byte 0
+    GCR:    .byte 0
+    CIRX:   .byte 0
+    CIRY:   .byte 0
+    CIRD:   .word 0
+    CTMP:   .word 0
+    CPA:    .byte 0
+    CPB:    .byte 0
 
-ytab_lo:
+    ytab_lo:
         .fill 200, 0
-ytab_hi:
+    ytab_hi:
         .fill 200, 0

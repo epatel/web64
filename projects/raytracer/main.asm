@@ -33,24 +33,24 @@ SHADE   = $06           ; 1 byte   pixel brightness 0-15
 DITHER_MODE = 2
 NOISE_SEED  = $5a       ; mode 1 only; any nonzero byte
 
-start:
+    start:
         sei
         jsr fx_init     ; build multiply tables (required by fixmath)
         jsr gfx_init
         jsr noise_init
         jsr render
-forever:
+    forever:
         jmp forever
 
 ; --- render: for every pixel, trace then dither ------------------
-render:
+    render:
         lda #$00
         sta PY
-rn_yloop:
+    rn_yloop:
         lda #$00
         sta PX
         sta PX+1
-rn_xloop:
+    rn_xloop:
         jsr trace_pixel ; -> SHADE (0-15)
         ; threshold: plot if SHADE > threshold(x, y)
         lda #DITHER_MODE
@@ -69,7 +69,7 @@ rn_xloop:
         lda ntab,x
         and #$0f
         jmp rn_cmp
-rn_blue:
+    rn_blue:
         ; blue noise: bnoise[(y&15)*16 + (x&15)]
         lda PY
         and #$0f
@@ -85,7 +85,7 @@ rn_blue:
         tax
         lda bnoise,x
         jmp rn_cmp
-rn_bayer:
+    rn_bayer:
         ; ordered Bayer 4x4: bayer[(py&3)*4 + (px&3)]
         lda PY
         and #$03
@@ -98,7 +98,7 @@ rn_bayer:
         adc BAYIX
         tax
         lda bayer4,x
-rn_cmp:
+    rn_cmp:
         sta DTH
         lda SHADE
         cmp DTH
@@ -111,11 +111,11 @@ rn_cmp:
         lda PY
         sta GPY
         jsr gfx_plot
-rn_dark:
+    rn_dark:
         inc PX
         bne rn_xchk
         inc PX+1
-rn_xchk:
+    rn_xchk:
         lda PX+1
         cmp #>320
         bcc rn_xloop
@@ -127,40 +127,40 @@ rn_xchk:
         cmp #200
         bcs rn_done
         jmp rn_yloop
-rn_done:
+    rn_done:
         rts
 
 ; --- noise_init: fill ntab deterministically from NOISE_SEED -----
 ; Galois LFSR (taps $b8, maximal 255-cycle) — same seed, same
 ; table, same dither pattern on every run.
-noise_init:
+    noise_init:
         lda #NOISE_SEED
         ldx #$00
-ni_loop:
+    ni_loop:
         lsr
         bcc ni_skip
         eor #$b8
-ni_skip:
+    ni_skip:
         sta ntab,x
         inx
         bne ni_loop
         rts
 
-bayer4:
+    bayer4:
         .byte  0,  8,  2, 10
         .byte 12,  4, 14,  6
         .byte  3, 11,  1,  9
         .byte 15,  7, 13,  5
 
-BAYIX:  .byte 0
-DTH:    .byte 0
-ntab:
+    BAYIX:  .byte 0
+    DTH:    .byte 0
+    ntab:
         .fill 256, 0
 
 ; 16x16 blue-noise threshold matrix, 16 levels (0-15), generated
 ; offline with the void-and-cluster algorithm (seed 42, sigma 1.5,
 ; toroidal). Tiles seamlessly; regenerate via project notes.
-bnoise:
+    bnoise:
         .byte  8,  0, 15,  4,  2, 11,  0,  5, 11,  9, 10,  3, 12, 13,  4,  6
         .byte 12,  3,  7, 10,  8, 13,  4, 15,  3, 13,  1,  5,  7,  2, 10, 15
         .byte  2,  9, 14,  1,  6,  2,  9,  8,  1,  6, 12, 15, 11,  8,  4, 11

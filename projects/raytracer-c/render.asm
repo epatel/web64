@@ -52,60 +52,60 @@ GPY     = $02           ; 1 byte   plot y (0-199)
 
 GFXBMP  = $2000
 
-gfx_bits:
+    gfx_bits:
         .byte $80, $40, $20, $10, $08, $04, $02, $01
 
-ytab_lo:
+    ytab_lo:
         .fill 200, 0
-ytab_hi:
+    ytab_hi:
         .fill 200, 0
 
 ; --- trace scratch registers (16-bit signed 8.8), used by the
 ; trace.c asm blocks (v0.1 C word globals can't be manipulated at
 ; runtime, so these stay assembler data) ---------------------------
-DIRX:   .word 0         ; primary ray direction x/y (z = 1)
-DIRY:   .word 0
-AVAL:   .word 0         ; a = D.D
-BHALF:  .word 0         ; b = D.C
-DISCV:  .word 0         ; discriminant
-TVAL:   .word 0         ; sphere hit distance
-HPX:    .word 0         ; hit point P
-HPY:    .word 0
-HPZ:    .word 0
-NRMX:   .word 0         ; normal N
-NRMY:   .word 0
-NRMZ:   .word 0
-REFK:   .word 0         ; 2*(D.N)
-SOX:    .word 0         ; sample-ray origin
-SOY:    .word 0
-SOZ:    .word 0
-SVX:    .word 0         ; sample-ray direction
-SVY:    .word 0
-SVZ:    .word 0
-T2V:    .word 0         ; floor hit distance
-HITX:   .word 0         ; floor hit point x/z
-HITZ:   .word 0
-SMPT:   .word 0         ; sky shade scratch
-OCZ:    .word 0         ; shadow ray: hit z - sphere z
-SB:     .word 0         ; N.L / oc.L accumulator
-SC:     .word 0         ; oc.oc - r^2 accumulator
+    DIRX:   .word 0         ; primary ray direction x/y (z = 1)
+    DIRY:   .word 0
+    AVAL:   .word 0         ; a = D.D
+    BHALF:  .word 0         ; b = D.C
+    DISCV:  .word 0         ; discriminant
+    TVAL:   .word 0         ; sphere hit distance
+    HPX:    .word 0         ; hit point P
+    HPY:    .word 0
+    HPZ:    .word 0
+    NRMX:   .word 0         ; normal N
+    NRMY:   .word 0
+    NRMZ:   .word 0
+    REFK:   .word 0         ; 2*(D.N)
+    SOX:    .word 0         ; sample-ray origin
+    SOY:    .word 0
+    SOZ:    .word 0
+    SVX:    .word 0         ; sample-ray direction
+    SVY:    .word 0
+    SVZ:    .word 0
+    T2V:    .word 0         ; floor hit distance
+    HITX:   .word 0         ; floor hit point x/z
+    HITZ:   .word 0
+    SMPT:   .word 0         ; sky shade scratch
+    OCZ:    .word 0         ; shadow ray: hit z - sphere z
+    SB:     .word 0         ; N.L / oc.L accumulator
+    SC:     .word 0         ; oc.oc - r^2 accumulator
 
-bayer4:
+    bayer4:
         .byte  0,  8,  2, 10
         .byte 12,  4, 14,  6
         .byte  3, 11,  1,  9
         .byte 15,  7, 13,  5
 
-BAYIX:  .byte 0
-DTH:    .byte 0
-ntab:
+    BAYIX:  .byte 0
+    DTH:    .byte 0
+    ntab:
         .fill 256, 0
 
 ; 16x16 blue-noise threshold matrix, 16 levels (0-15), generated
 ; offline with the void-and-cluster algorithm (seed 42, sigma 1.5,
 ; toroidal). Tiles seamlessly; regenerate via raytracer project
 ; tools/bluenoise.py.
-bnoise:
+    bnoise:
         .byte  8,  0, 15,  4,  2, 11,  0,  5, 11,  9, 10,  3, 12, 13,  4,  6
         .byte 12,  3,  7, 10,  8, 13,  4, 15,  3, 13,  1,  5,  7,  2, 10, 15
         .byte  2,  9, 14,  1,  6,  2,  9,  8,  1,  6, 12, 15, 11,  8,  4, 11

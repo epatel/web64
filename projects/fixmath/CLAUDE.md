@@ -26,6 +26,7 @@ projects pick it up.
 - Memory map: bitmap `$2000-$3f3f`, code at `$4000`, tables `$c000-$c7ff`.
 
 ## Testing
-Load `main.asm` (flattened or with the virtual tree) in the web64 IDE, run:
+Open `fixmath.web64proj` in the web64 IDE (generated from the sources —
+regenerate after changes), or load `main.asm` with the virtual tree, run:
 green border + clean circles/lines = lib is good. The self-test checks
 2.5×4.0, −10.0/4.0 and √2.25 for exact expected raw values.

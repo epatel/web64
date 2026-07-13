@@ -21,7 +21,7 @@
 ; Sky:   shade = 1 + Vy/16, clamped to SKY_MAX (dark at horizon).
 ; ---------------------------------------------------------------
 
-trace_pixel:
+    trace_pixel:
         lda #$00
         sta SPHFLG
         ; D = (dx, dy, 1): dx = (PX-160)*2 raw, dy = (100-PY)*2 raw
@@ -117,7 +117,7 @@ trace_pixel:
         sta DISCV+1
         bpl tp_hit
         jmp tp_miss     ; disc < 0: ray misses the sphere
-tp_hit:
+    tp_hit:
         lda #$01
         sta SPHFLG
         ; t = (b - sqrt(disc)) / a
@@ -252,7 +252,7 @@ tp_hit:
         jsr fmul
         lda FXR+1
         sta DIFS
-tp_nodif:
+    tp_nodif:
         ; k = 2*(D.N) = 2*(dx*Nx + dy*Ny + Nz)
         lda DIRX
         sta FXA
@@ -354,7 +354,7 @@ tp_nodif:
         lda HPZ+1
         sta SOZ+1
         jmp tp_sample
-tp_miss:
+    tp_miss:
         ; primary ray continues from the origin
         lda #$00
         sta SOX
@@ -375,7 +375,7 @@ tp_miss:
         sta SVZ
         lda #$01
         sta SVZ+1
-tp_sample:
+    tp_sample:
         ; --- sample floor or sky from (SOX..) along (SVX..) ------
         lda SVY+1
         bmi tp_floor
@@ -385,7 +385,7 @@ tp_sample:
         lda SVY+1
         sta SMPT+1
         ldx #4
-tp_sky1:
+    tp_sky1:
         lsr SMPT+1
         ror SMPT
         dex
@@ -397,12 +397,12 @@ tp_sky1:
         adc #$01
         cmp #SKY_MAX+1
         bcc tp_sky2
-tp_skymax:
+    tp_skymax:
         lda #SKY_MAX
-tp_sky2:
+    tp_sky2:
         sta SHADE
         jmp tp_done
-tp_floor:
+    tp_floor:
         ; t2 = (floor_y - Oy) / Vy  (numerator and Vy both < 0)
         sec
         lda #<FLOOR_Y
@@ -422,7 +422,7 @@ tp_floor:
         lda #SHD_HAZE
         sta SHADE
         jmp tp_done
-tp_fl1:
+    tp_fl1:
         sta T2V+1
         lda FXR
         sta T2V
@@ -469,19 +469,19 @@ tp_fl1:
         lda HITX+1
         bpl tp_sx1
         eor #$ff
-tp_sx1:
+    tp_sx1:
         cmp #SHADOW_MAX
         bcc tp_sxok
         jmp tp_noshad
-tp_sxok:
+    tp_sxok:
         lda HITZ+1
         bpl tp_sz1
         eor #$ff
-tp_sz1:
+    tp_sz1:
         cmp #SHADOW_MAX
         bcc tp_szok
         jmp tp_noshad
-tp_szok:
+    tp_szok:
         sec
         lda HITZ
         sbc #<SPH_CZ
@@ -576,7 +576,7 @@ tp_szok:
         bmi tp_noshad
         lda #$01
         sta SHADFLG
-tp_noshad:
+    tp_noshad:
         ; checker from integer-part parity (hi byte = floor())
         lda HITX+1
         eor HITZ+1
@@ -584,17 +584,17 @@ tp_noshad:
         bne tp_chk1
         lda #SHD_CHK_LO
         jmp tp_shad
-tp_chk1:
+    tp_chk1:
         lda #SHD_CHK_HI
-tp_shad:
+    tp_shad:
         ldx SHADFLG
         beq tp_sunlit
         lsr
         lsr             ; shadowed tile: quarter brightness
-tp_sunlit:
+    tp_sunlit:
         sta SHADE
 ; fall through
-tp_done:
+    tp_done:
         ; sphere: half mirror + Lambertian white
         lda SPHFLG
         beq tp_ret
@@ -606,38 +606,38 @@ tp_done:
         cmp #16
         bcc tp_lift
         lda #15
-tp_lift:
+    tp_lift:
         sta SHADE
-tp_ret:
+    tp_ret:
         rts
 
 ; --- trace variables (16-bit signed 8.8) --------------------------
-DIRX:   .word 0         ; primary ray direction x/y (z = 1)
-DIRY:   .word 0
-AVAL:   .word 0         ; a = D.D
-BHALF:  .word 0         ; b = D.C
-DISCV:  .word 0         ; discriminant
-TVAL:   .word 0         ; sphere hit distance
-HPX:    .word 0         ; hit point P
-HPY:    .word 0
-HPZ:    .word 0
-NRMX:   .word 0         ; normal N
-NRMY:   .word 0
-NRMZ:   .word 0
-REFK:   .word 0         ; 2*(D.N)
-SOX:    .word 0         ; sample-ray origin
-SOY:    .word 0
-SOZ:    .word 0
-SVX:    .word 0         ; sample-ray direction
-SVY:    .word 0
-SVZ:    .word 0
-T2V:    .word 0         ; floor hit distance
-HITX:   .word 0         ; floor hit point x/z
-HITZ:   .word 0
-SMPT:   .word 0         ; sky shade scratch
-OCZ:    .word 0         ; shadow ray: hit z - sphere z
-SB:     .word 0         ; N.L / oc.L accumulator
-SC:     .word 0         ; oc.oc - r^2 accumulator
-SPHFLG: .byte 0         ; 1 = current pixel hit the sphere
-DIFS:   .byte 0         ; diffuse contribution 0-12
-SHADFLG: .byte 0        ; 1 = floor hit point is in shadow
+    DIRX:   .word 0         ; primary ray direction x/y (z = 1)
+    DIRY:   .word 0
+    AVAL:   .word 0         ; a = D.D
+    BHALF:  .word 0         ; b = D.C
+    DISCV:  .word 0         ; discriminant
+    TVAL:   .word 0         ; sphere hit distance
+    HPX:    .word 0         ; hit point P
+    HPY:    .word 0
+    HPZ:    .word 0
+    NRMX:   .word 0         ; normal N
+    NRMY:   .word 0
+    NRMZ:   .word 0
+    REFK:   .word 0         ; 2*(D.N)
+    SOX:    .word 0         ; sample-ray origin
+    SOY:    .word 0
+    SOZ:    .word 0
+    SVX:    .word 0         ; sample-ray direction
+    SVY:    .word 0
+    SVZ:    .word 0
+    T2V:    .word 0         ; floor hit distance
+    HITX:   .word 0         ; floor hit point x/z
+    HITZ:   .word 0
+    SMPT:   .word 0         ; sky shade scratch
+    OCZ:    .word 0         ; shadow ray: hit z - sphere z
+    SB:     .word 0         ; N.L / oc.L accumulator
+    SC:     .word 0         ; oc.oc - r^2 accumulator
+    SPHFLG: .byte 0         ; 1 = current pixel hit the sphere
+    DIFS:   .byte 0         ; diffuse contribution 0-12
+    SHADFLG: .byte 0        ; 1 = floor hit point is in shadow
